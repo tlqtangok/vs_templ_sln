@@ -1,0 +1,130 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+Mat2Hsv	t0.cpp	/^void Mat2Hsv(const cv::Mat& inputImage, cv::Mat& value)$/;"	f
+MatlabImadjust	t0.cpp	/^void MatlabImadjust(const cv::Mat& input, cv::Mat& output,$/;"	f
+NDEBUG	t0.cpp	7;"	d	file:
+OF_W	t0.cpp	47;"	d	file:
+P	t0.cpp	/^cv::Mat cimg::P(const vector<float>& data, int flag_show) $/;"	f	class:cimg
+Peak	t0.cpp	/^struct Peak {$/;"	s	file:
+Rgb2yV0	t0.cpp	/^void  Rgb2yV0(cv::Mat& inputImage, cv::Mat& value)$/;"	f
+Rgb2yV1	t0.cpp	/^void  Rgb2yV1(cv::Mat& inputImage, cv::Mat& value)$/;"	f
+Rgb2yV2	t0.cpp	/^void Rgb2yV2(cv::Mat& inputImage, cv::Mat& value)$/;"	f
+SQE6E7Common	t0.cpp	/^SQE6E7Common::SQE6E7Common()$/;"	f	class:SQE6E7Common
+SQE6E7Common	t0.cpp	/^class SQE6E7Common$/;"	c	file:
+WIDTH_4	t0.cpp	1389;"	d	file:
+WIDTH_4	t0.cpp	44;"	d	file:
+WIDTH_ALIGN	t0.cpp	1387;"	d	file:
+WIDTH_ALIGN	t0.cpp	42;"	d	file:
+area_contour	t0.cpp	/^double cimg::area_contour(vector<cv::Point2i>& vp)$/;"	f	class:cimg
+bgr_copy_r_to_dst	t0.cpp	/^void bgr_copy_r_to_dst(uchar* bgr_all, int rows, int cols, uchar* dst)$/;"	f
+bin_img	t0.cpp	/^void bin_img(cv::Mat& e_chn_img, int thr = 140)$/;"	f
+blue	t0.cpp	/^uint8_t& blue(cv::Mat & _orgRGB,  int y, int x)$/;"	f
+byte	t0.cpp	25;"	d	file:
+byte2cvmat	t0.cpp	/^void byte2cvmat(byte* src, int rows, int cols, int  chn, cv::Mat& id_mat)$/;"	f
+celltype	t0.cpp	/^    int celltype; $/;"	m	struct:obj_data	file:
+cimg	t0.cpp	/^class cimg$/;"	c	file:
+create_img_rc_chn	t0.cpp	/^void cimg::create_img_rc_chn(int rows, int cols, int chn)$/;"	f	class:cimg
+cvtcolor	t0.cpp	/^void cimg::cvtcolor(string colormode)$/;"	f	class:cimg
+dbmgr	t0.cpp	/^class dbmgr$/;"	c	file:
+dbmgr	t0.cpp	/^dbmgr::dbmgr()$/;"	f	class:dbmgr
+deal_eline	t0.cpp	/^void deal_eline(cimg& ci, string& es, vector<string>& vp, vector<string>& vn)$/;"	f
+deserial_from_mat	t0.cpp	/^void cimg::deserial_from_mat(const string& fn)$/;"	f	class:cimg
+diag_diffsum	t0.cpp	/^pair<int, int>  diag_diffsum(const cv::Mat& img, int step)$/;"	f
+dna_grey	t0.cpp	/^uint8_t& dna_grey(cv::Mat& _orgGrey, int y, int x)$/;"	f
+dnaindex	t0.cpp	/^    double dnaindex; $/;"	m	struct:obj_data	file:
+doCurrentBackground	t0.cpp	/^void doCurrentBackground(const cv::Mat & _orgRGB, const cv::Mat& _orgGrey, int * _currentBackground)$/;"	f
+doinit_logtab	t0.cpp	/^void doinit_logtab(float *_LogTab, uint64_t *_Pow4)$/;"	f
+factor_f_to_i	t0.cpp	/^int factor_f_to_i(float f0, float f_l = -2, float f_h = 2, int i_l = 0, int i_h = 100)$/;"	f
+factor_i_to_f	t0.cpp	/^float factor_i_to_f(int i0, int i_l=0, int i_h=100, float f_l=-2, float f_h=2)$/;"	f
+fcout	t0.cpp	/^void cimg::fcout(string fn, string id_s, string flag_w)$/;"	f	class:cimg
+fcoutln	t0.cpp	/^void cimg::fcoutln(string fn, string id_s, string flag_w)$/;"	f	class:cimg
+filename2y	t0.cpp	/^std::string filename2y(const std::string& filename)$/;"	f
+filterContour	t0.cpp	/^cv::Mat SQE6E7Common::filterContour()$/;"	f	class:SQE6E7Common
+find_top3peak	t0.cpp	/^std::vector<Peak> find_top3peak(const std::vector<double>& data, int min_distance, int margin) {$/;"	f
+fmts	t0.cpp	/^void fmts(string& s)$/;"	f
+fun0	t0.cpp	/^    void fun0()$/;"	f	namespace:ns0
+fun1	t0.cpp	/^    void fun1()$/;"	f	namespace:ns0
+get_env	t0.cpp	/^string cimg::get_env(string env_name)$/;"	f	class:cimg
+get_overlap_img	t0.cpp	/^cv::Mat get_overlap_img(const cv::Mat& img, const cv::Rect& rec)$/;"	f
+get_rectangle_mat	t0.cpp	/^cv::Mat cimg::get_rectangle_mat(cv::Mat& id_m32, int start_rows, int end_rows, int start_cols, int end_cols)$/;"	f	class:cimg
+get_stage	t0.cpp	/^stage* stage::get_stage()$/;"	f	class:stage
+get_timestamp	t0.cpp	/^string cimg::get_timestamp()$/;"	f	class:cimg
+gray	t0.cpp	/^    cv::Mat gray;$/;"	m	class:SQE6E7Common	file:
+green	t0.cpp	/^uint8_t& green(cv::Mat& _orgRGB, int y, int x)$/;"	f
+hist_di	t0.cpp	/^int hist_di(vector<obj_data>& vec_obj_data)$/;"	f
+hist_img	t0.cpp	/^void cimg::hist_img(string fn)$/;"	f	class:cimg
+id_fun1	t0.cpp	/^int id_fun1(string id_str)$/;"	f
+id_mat	t0.cpp	/^    cv::Mat id_mat;$/;"	m	namespace:ns0	file:
+id_stage	t0.cpp	/^    stage* id_stage;$/;"	m	class:stage	file:
+ifMaskIsFilled	t0.cpp	/^bool ifMaskIsFilled(const cv::Mat& overlay_rect)$/;"	f
+imadjust	t0.cpp	/^void imadjust(const cv::Mat& input, cv::Mat& output,$/;"	f
+img	t0.cpp	/^    cv::Mat img;$/;"	m	class:SQE6E7Common	file:
+img	t0.cpp	/^    cv::Mat img;$/;"	m	class:cimg	file:
+img_copy	t0.cpp	/^    cv::Mat img_copy;$/;"	m	class:cimg	file:
+index	t0.cpp	/^    int index;$/;"	m	struct:Peak	file:
+info	t0.cpp	/^string cimg::info()$/;"	f	class:cimg
+init	t0.cpp	/^void stage::init()$/;"	f	class:stage
+main	t0.cpp	/^int main(int argc, char** argv)$/;"	f
+mat2hsv_v	t0.cpp	/^void mat2hsv_v(const cv::Mat& inputImage, cv::Mat & value)$/;"	f
+measure	t0.cpp	/^class measure {$/;"	c	file:
+measure	t0.cpp	/^measure::measure()$/;"	f	class:measure
+merge_bgr_to_color_batch	t0.cpp	/^void merge_bgr_to_color_batch(vector<string>& arr_fn, string& fn_save)$/;"	f
+normalized	t0.cpp	/^void SQE6E7Common::normalized()$/;"	f	class:SQE6E7Common
+normalized	t0.cpp	/^void cimg::normalized()$/;"	f	class:cimg
+ns0	t0.cpp	/^namespace ns0$/;"	n	file:
+obj_data	t0.cpp	/^struct obj_data$/;"	s	file:
+on_trackbar	t0.cpp	/^void on_trackbar(int, void*) {$/;"	f
+on_trackbar_f0	t0.cpp	/^void on_trackbar_f0(int, void*) {$/;"	f
+on_trackbar_f1	t0.cpp	/^void on_trackbar_f1(int, void*) {$/;"	f
+on_trackbar_f2	t0.cpp	/^void on_trackbar_f2(int, void*) {$/;"	f
+on_trackbar_f3	t0.cpp	/^void on_trackbar_f3(int, void*) {$/;"	f
+operator <	t0.cpp	/^    bool operator<(const Peak& other) const {$/;"	f	struct:Peak
+perimeter_contour	t0.cpp	/^double cimg::perimeter_contour(vector<cv::Point2i>& vp)$/;"	f	class:cimg
+pk_algo	t0.cpp	/^void pk_algo(const cv::Mat& _rgb)$/;"	f
+processCurrentBackground	t0.cpp	/^void processCurrentBackground(cv::Mat& _orgRGB, cv::Mat& _orgGrey, float f0, float f1, float f2, float f3)$/;"	f
+read_bin_to_mat	t0.cpp	/^void cimg::read_bin_to_mat(string fn, int rows, int cols, int channels)$/;"	f	class:cimg
+read_bin_to_string	t0.cpp	/^string cimg::read_bin_to_string(string fn)$/;"	f	class:cimg
+read_cmyimage	t0.cpp	/^void cimg::read_cmyimage(string fn)$/;"	f	class:cimg
+read_cmyimage_11chn_add_dna	t0.cpp	/^void cimg::read_cmyimage_11chn_add_dna(string fn)$/;"	f	class:cimg
+read_img	t0.cpp	/^void cimg::read_img(string fn)$/;"	f	class:cimg
+read_txt_to_img	t0.cpp	/^void cimg::read_txt_to_img(string fn, int flag_has_header)$/;"	f	class:cimg
+read_txt_to_vec_str	t0.cpp	/^vector<string> cimg::read_txt_to_vec_str(string fn)$/;"	f	class:cimg
+red	t0.cpp	/^uint8_t& red(cv::Mat& _orgRGB, int y, int x)$/;"	f
+replace_str	t0.cpp	/^std::string replace_str(const std::string& filename, const string & from_str, const string & to_str)$/;"	f
+resize	t0.cpp	/^void cimg::resize(float scale_f)$/;"	f	class:cimg
+ret0	t0.cpp	/^float& ret0(float* arr, int index)$/;"	f
+rgb2y_v0	t0.cpp	/^void  rgb2y_v0(cv::Mat& inputImage, cv::Mat & value)$/;"	f
+rgb2y_v1	t0.cpp	/^void  rgb2y_v1(cv::Mat& inputImage, cv::Mat& value)$/;"	f
+rgb2y_v2	t0.cpp	/^void rgb2y_v2(cv::Mat& inputImage, cv::Mat& value)$/;"	f
+run_cmd	t0.cpp	/^string cimg::run_cmd(string cmd_)$/;"	f	class:cimg
+s_com	t0.cpp	/^static com  s_com; $/;"	v	file:
+s_i	t0.cpp	/^void cimg::s_i()$/;"	f	class:cimg
+s_i	t0.cpp	/^void cimg::s_i(cv::Mat& id_img)$/;"	f	class:cimg
+scanapp	t0.cpp	/^class scanapp {$/;"	c	file:
+scanapp	t0.cpp	/^scanapp::scanapp()$/;"	f	class:scanapp
+scandlg	t0.cpp	/^class scandlg {$/;"	c	file:
+scandlg	t0.cpp	/^scandlg::scandlg()$/;"	f	class:scandlg
+serial_p_2_str	t0.cpp	/^string cimg::serial_p_2_str(T* cstr, size_t sz)$/;"	f	class:cimg
+serial_struct_2_str	t0.cpp	/^    string serial_struct_2_str(T& pt)$/;"	f	class:cimg
+serial_to_mat	t0.cpp	/^void cimg::serial_to_mat(const string & fn)$/;"	f	class:cimg
+split_str_2_vec	t0.cpp	/^vector<string> cimg::split_str_2_vec(string& str, const char delimiter)$/;"	f	class:cimg
+stage	t0.cpp	/^class stage {$/;"	c	file:
+stage	t0.cpp	/^stage::stage()$/;"	f	class:stage
+str_to_bin_file	t0.cpp	/^void cimg::str_to_bin_file(string fn, string& str_to_serial)$/;"	f	class:cimg
+td_sleep	t0.cpp	/^void cimg::td_sleep(double seconds)$/;"	f	class:cimg
+toBinaryImg	t0.cpp	/^void SQE6E7Common::toBinaryImg(int thres)$/;"	f	class:SQE6E7Common
+toChnHSV	t0.cpp	/^void SQE6E7Common::toChnHSV()$/;"	f	class:SQE6E7Common
+tosvg	t0.cpp	/^void tosvg(std::string svg_filename, std::vector<float>& x, std::vector<float>& y) {$/;"	f
+traverse	t0.cpp	/^void traverse(const cv::Mat& mat, const std::function<void(int y, int x)>& func)$/;"	f
+v_hsv	t0.cpp	/^    vector<cv::Mat> v_hsv;$/;"	m	class:SQE6E7Common	file:
+value	t0.cpp	/^    double value;$/;"	m	struct:Peak	file:
+visualizeVector	t0.cpp	/^void visualizeVector(const vector<int>& data, const string& windowName) {$/;"	f
+write_byte_2_bin	t0.cpp	/^void write_byte_2_bin(string fn_prefix, BYTE* buf, int rows, int cols, int chn)$/;"	f
+write_mat_to_bin	t0.cpp	/^void cimg::write_mat_to_bin(string fn)$/;"	f	class:cimg
+write_mat_to_csv	t0.cpp	/^void cimg::write_mat_to_csv(string fn)$/;"	f	class:cimg
+write_mat_to_txt	t0.cpp	/^void cimg::write_mat_to_txt(string filename, int flag = 0)$/;"	f	class:cimg
+~SQE6E7Common	t0.cpp	/^SQE6E7Common::~SQE6E7Common()$/;"	f	class:SQE6E7Common
