@@ -1,9 +1,5 @@
 # Prerequisites
-*.d
 
-# Compiled Object files
-*.slo
-*.lo
 *.o
 *.obj
 
@@ -14,7 +10,6 @@
 # Compiled Dynamic libraries
 *.so
 *.dylib
-*.dll
 
 # Fortran module files
 *.mod
@@ -24,9 +19,15 @@
 *.lai
 *.la
 *.a
-*.lib
-
-# Executables
+*.pdb
+*.swp
+*.tlog
+*.recipe
+*.idb
+*.db
 *.exe
-*.out
-*.app
+*.log
+*.ilk
+
+
+
