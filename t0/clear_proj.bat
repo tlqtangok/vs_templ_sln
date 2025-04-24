@@ -4,7 +4,7 @@
 setlocal
 cd |repl "^.*\\" ""  > %tmp%\basename.txt
 
-set projname=<%tmp%\basename.txt
+set /p projname=<%tmp%\basename.txt
 
 dir /s /b /AD |grepw /V _3rd | grepw "%projname%$ .vs$ x64$ .vscode$" > txt.txt 
 dir /s /b *.pdb >> txt.txt
