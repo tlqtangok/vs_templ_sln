@@ -104,14 +104,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)_3rd\dep;$(SolutionDir)_3rd\fmt\include;$(SolutionDir)_3rd\opencv3.4.16\build\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)_3rd\dep;$(SolutionDir)_3rd\pcre2\include;$(SolutionDir)_3rd\fmt\include;$(SolutionDir)_3rd\opencv3.4.16\build\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)_3rd\fmt\lib;$(SolutionDir)_3rd\opencv3.4.16\build\x64\vc15\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>fmt_slib_10.1.0.lib;opencv_world3416d.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)_3rd\fmt\lib;$(SolutionDir)_3rd\pcre2\lib;$(SolutionDir)_3rd\opencv3.4.16\build\x64\vc15\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>fmt_slib_10.1.0.lib;opencv_world3416d.lib;rex_8.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

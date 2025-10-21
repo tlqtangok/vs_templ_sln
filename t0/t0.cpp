@@ -1,14 +1,14 @@
-//#define _CRT_SECURE_NO_WARNINGS 1
-
+// #define _CRT_SECURE_NO_WARNINGS 1
 
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <cmath>
 
 #undef NDEBUG
 
 #include <assert.h>
 
-
+// #include <omp.h> // ok , can work
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,35 +17,47 @@
 
 #include <fmt/fmt_world.h>
 
-
 #include <map>
 #include <unordered_map>
 #include <bitset>
 #include <functional>
+#include <algorithm>
+#include <numeric>
+#include <stdexcept>
+#include <cmath> // 确保包含此头文件
+#include <regex>
+#include <rex.h>  // jd define regex
+
+// #define PCRE2_CODE_UNIT_WIDTH 8
+// #include <pcre2.h>   // .\vcpkg install pcre2:x64-windows && .\vcpkg integrate install 
+
+
+
+
 #define byte uchar
-
-
 
 using namespace std;
 using namespace cv;
 
 #include "com.h"
-class com; 
+class com;
 
-static com  s_com; 
-
+static com s_com;
 
 using v3b = cv::Vec3b;
 using v2b = cv::Vec2b;
+using uchar3 = cv::Vec3b;
+using uchar2 = cv::Vec2b;
+using uchar4 = cv::Vec4b;
 
 
-#define WIDTH_ALIGN(_w,_align) \
-       ((_w%_align!=0)?(_w/_align+1)*_align:_w)
-#define WIDTH_4(_w) WIDTH_ALIGN(_w,4)
 
 
-#define OF_W (ios::out|ios::trunc)
+#define WIDTH_ALIGN(_w, _align) \
+    ((_w % _align != 0) ? (_w / _align + 1) * _align : _w)
+#define WIDTH_4(_w) WIDTH_ALIGN(_w, 4)
 
+#define OF_W (ios::out | ios::trunc)
 
 #if 0
 template<typename T>
@@ -55,7 +67,7 @@ string to_string_(T n)
     ss << n;
     return ss.str();
 }
-#endif 
+#endif
 
 #if 1
 // cimg_ hpp start
@@ -63,72 +75,105 @@ string to_string_(T n)
 class cimg
 {
 public:
-
     cv::Mat img;
     cv::Mat img_copy;
 
+    std::vector<std::vector<cv::Point>> v_contours;
+    cv::Mat img_contour_mask;
+    cv::Mat img_contour_line;
 
     void normalized();
 
     void read_img(string fn);
-    //void cvtcolor();
+    void read_img_gif(const std::string& filePath, int frameIndex = 0);
+    // void cvtcolor();
     void cvtcolor(string colormode = "GRAY");
-    void s_i(cv::Mat& id_img);
+    void s_i(cv::Mat &id_img);
     void s_i(); // show img on GUI
     string read_bin_to_string(string fn);
     void read_bin_to_mat(string fn, int rows, int cols, int channels);
     void write_mat_to_bin(string fn);
     void write_mat_to_txt(string filename, int flag);
-    void fcout(string fn, string id_s, string flag_w = "ios::out");  // str2txt str2bin can use 
-    void fcoutln(string fn, string id_s, string flag_w = "ios::out");  // str2txt str2bin can use 
+    void fcout(string fn, string id_s, string flag_w = "ios::out");   // str2txt str2bin can use
+    void fcoutln(string fn, string id_s, string flag_w = "ios::out"); // str2txt str2bin can use
     void write_mat_to_csv(string fn);
-    void str_to_bin_file(string fn, string& str_to_serial);
-    void serial_to_mat(const string& fn);
-    void deserial_from_mat(const string& fn);
+    void str_to_bin_file(string fn, string &str_to_serial);
+    std::vector<std::string> filter_out_vstr(std::vector<std::string>& vstr, const std::string& pattern);
+    std::vector<std::string> filter_vstr(std::vector<std::string>& vstr, const std::string& pattern);
+
+    template <typename T>
+    std::vector<T> combine_vec(const std::vector<T> &v0, const std::vector<T> &v1);
+
+    template <typename T>
+    T sum_vec(const vector<T> &v);
+    template <typename T>
+    float mean_vec(const vector<T> &v);
+    template <typename T>
+    float stddev_vec(const vector<T> &v);
+
+    template <typename T>
+    vector<T> diff_v(const vector<T> &v);
+
+    void serial_to_mat(const string &fn);
+    void deserial_from_mat(const string &fn);
     string info();
 
-    vector<string> split_str_2_vec(string& str, const char delimiter);
+    vector<string> split_str_2_vec(string &str, const char delimiter);
     void read_txt_to_img(string fn, int flag_has_header = 1);
     vector<string> read_txt_to_vec_str(string fn);
     void read_cmyimage_11chn_add_dna(string fn);
-    cv::Mat get_rectangle_mat(cv::Mat& id_m32, int start_rows, int end_rows, int start_cols, int end_cols);
+    cv::Mat get_rectangle_mat(cv::Mat &id_m32, int start_rows, int end_rows, int start_cols, int end_cols);
     void read_cmyimage(string fn);
     string get_timestamp();
     string run_cmd(string cmd_);
     string get_env(string env_name);
     void td_sleep(double seconds);
-    double area_contour(vector<cv::Point2i>& vp);
-    double perimeter_contour(vector<cv::Point2i>& vp);
+    double area_contour(vector<cv::Point2i> &vp);
+    cv::Mat hconcat(const vector<cv::Mat> &vimg, int intv = 0);
+    vector<cv::Mat> unify_vimg(const vector<cv::Mat> & vimg);
+    cv::Mat vconcat(const vector<cv::Mat> &vimg, int intv = 0);
+    double perimeter_contour(vector<cv::Point2i> &vp);
     void hist_img(string fn);
-    cv::Mat P(const vector<float>& data, int flag_show=1);
+    void threshold(int thres, int dst_val = 255);
+    cv::Mat find_contours(int dst_val = 255, int dst_sz = 300);
+
+
+    template <typename T>
+    cv::Mat P(const vector<T> &data, int flag_show = 1);
     void resize(float scale_f);
-    void create_img_rc_chn(int rows, int cols, int chn);
+    void puttext(const string &text, cv::Scalar color = cv::Scalar(0, 0, 0));
+    void puttext(cv::Mat &img, const string &text, cv::Scalar color = cv::Scalar(0, 0, 0));
+    cv::Mat create_img_rc_chn(int rows, int cols, int chn);
+    std::vector<double> linspace(double start, double stop, int num);
+    std::string replace_str(const std::string &str, const string &from_str, const string &to_str);
+
+    std::vector<std::string> get_file_list(const std::string& dir_or_pattern, bool recursive = false);
+    // get int range(starti, endi), use iterator
+
+    vector<int> R(int starti, int endi, int step = 1);
+    vector<int> R(int endi);
 
     
 
     template <typename T>
-    string serial_struct_2_str(T& pt)
+    string serial_struct_2_str(T &pt)
     {
         string id_s = "";
-        char* c_pt = (char*)&pt;
+        char *c_pt = (char *)&pt;
         id_s += string(c_pt, c_pt + sizeof(T));
         return id_s;
     }
 
     template <typename T>
-    string serial_p_2_str(T * cstr, size_t sz);
+    string serial_p_2_str(T *cstr, size_t sz);
 };
 
-template<typename T>
-string cimg::serial_p_2_str(T* cstr, size_t sz)
+template <typename T>
+string cimg::serial_p_2_str(T *cstr, size_t sz)
 {
-    char* cstr_ = (char*)cstr;
+    char *cstr_ = (char *)cstr;
     return string(cstr_, cstr_ + sz);
 }
-
-
-
-
 
 class SQE6E7Common
 {
@@ -137,29 +182,23 @@ public:
 
     ~SQE6E7Common();
 
-    
     cv::Mat img;
     cv::Mat gray;
     vector<cv::Mat> v_hsv;
 
     void normalized();
 
-
     void toChnHSV();
     void toBinaryImg(int thres);
     cv::Mat filterContour();
 };
 
-
-
-// cimg_ hpp end    
-
+// cimg_ hpp end
 
 // cimg_ cpp start
 
 SQE6E7Common::SQE6E7Common()
 {
-
 }
 
 SQE6E7Common::~SQE6E7Common()
@@ -187,7 +226,6 @@ void SQE6E7Common::toBinaryImg(int thres)
             }
         }
     }
-
 }
 cv::Mat SQE6E7Common::filterContour()
 {
@@ -204,14 +242,17 @@ cv::Mat SQE6E7Common::filterContour()
 
     int cnt_all = 0;
 
-    int cnt_positive = 0; 
-    for(size_t i = 0; i < contours.size(); i++)
+    int cnt_positive = 0;
+    for (size_t i = 0; i < contours.size(); i++)
     {
 
         // filter via contours size
         // v_contour_size.push_back(contours[i].size());
 
-        if (contours[i].size()< 32) { continue; }
+        if (contours[i].size() < 32)
+        {
+            continue;
+        }
 
         cv::Rect out_rectbox = cv::boundingRect(contours[i]);
 
@@ -225,15 +266,14 @@ cv::Mat SQE6E7Common::filterContour()
         {
             cv::Moments moments = cv::moments(contours[i], true);
             auto center_xy = cv::Point2i(moments.m10 / moments.m00, moments.m01 / moments.m00);
-            auto & c = center_xy;
-
+            auto &c = center_xy;
 
             int sum = 0;
             for (int i = -1; i <= 1; i++)
             {
                 for (int j = -1; j <= 1; j++)
                 {
-                    sum +=  gray.ptr(c.y + i)[c.x + j];
+                    sum += gray.ptr(c.y + i)[c.x + j];
                 }
             }
 
@@ -244,82 +284,224 @@ cv::Mat SQE6E7Common::filterContour()
                 cv::drawContours(ci_clear, contours, i, cv::Scalar(255), 2);
                 cnt_all++;
             }
-
         }
-
-      
     }
 
-
-
-    
-
-    std::cout << cnt_positive << " / " << cnt_all  << endl;
-    cout << cnt_positive * 1.0f / cnt_all << endl; 
+    std::cout << cnt_positive << " / " << cnt_all << endl;
+    cout << cnt_positive * 1.0f / cnt_all << endl;
 
     return ci_clear;
-
 }
 
 void SQE6E7Common::toChnHSV()
 {
-    assert(3 == img.channels()); 
+    assert(3 == img.channels());
     cv::Mat HSV;
     cv::cvtColor(img, HSV, cv::COLOR_BGR2HSV);
     // 分离 HSV 通道
     cv::split(HSV, v_hsv);
 
     gray = v_hsv[2].clone(); // as background image
-    img = gray; 
+    img = gray;
     normalized();
 
     img = v_hsv[1]; // to binary then
     normalized();
 }
 
-
-
-
 /// //////
 
-double cimg::area_contour(vector<cv::Point2i>& vp)
+double cimg::area_contour(vector<cv::Point2i> &vp)
 {
 
-    //vector<cv::Point2i> vp{ {0,0},{10,0},{0,5}, {0,2} ,{-2,0} };
+    // vector<cv::Point2i> vp{ {0,0},{10,0},{0,5}, {0,2} ,{-2,0} };
     int cnt = 0;
     float sum = 0;
 
     for (int i = 0; i < vp.size() - 1; i++)
     {
-        auto& x = vp[i].x;
-        auto& y = vp[i].y;
-        auto& xn = vp[i + 1].x;
-        auto& yn = vp[i + 1].y;
+        auto &x = vp[i].x;
+        auto &y = vp[i].y;
+        auto &xn = vp[i + 1].x;
+        auto &yn = vp[i + 1].y;
         auto e_val = (x * yn - xn * y);
         sum += e_val;
     }
 
-    //cout << sum * 1 / 2 << endl;
+    // cout << sum * 1 / 2 << endl;
     return sum * 1.0 / 2;
 }
-double cimg::perimeter_contour(vector<cv::Point2i>& vp)
-{
-    auto& vpi = vp;
-    //vpi = { {0,0}, {2,0}, {0,4},{-1,0} };
-    assert(vpi.size() > 0);
 
+cv::Mat cimg::vconcat(const vector<cv::Mat> &vimg_r0, int intv)
+{
+    auto vimg = unify_vimg(vimg_r0);
+
+    auto img_copy_ = img_copy.clone();
+    if (intv == 0)
+    {
+
+        // img_copy = cv::Mat(vimg[0].rows * vimg.size(), vimg[0].cols, vimg[0].type());
+        cv::vconcat(vimg, img_copy_);
+    }
+    else
+    {
+        cv::Mat img_ = vimg[0].clone();
+
+        cv::Scalar px_avg = cv::mean(img_);
+
+        uchar intv_val = 0;
+        if (px_avg[0] < 122)
+        {
+            intv_val = 255;
+        }
+
+        // img_copy = img.clone();
+
+        cv::Mat img_intv = create_img_rc_chn(intv, img_.cols, img_.channels());
+        img_intv.setTo(intv_val);
+
+        vector<cv::Mat> vimg_new;
+        for (auto eimg : vimg)
+        {
+            vimg_new.push_back(eimg);
+            vimg_new.push_back(img_intv);
+        }
+
+        vimg_new.pop_back();
+        // img = img_copy.clone();
+
+        cv::vconcat(vimg_new, img_copy_);
+    }
+
+    return img_copy_;
+}
+
+vector<cv::Mat> cimg::unify_vimg(const vector<cv::Mat> & vimg)
+{
+
+    assert(vimg.size() >= 2);
+
+    vector<cv::Mat> vimg_ret = {};
+
+    int flag_samesz = 1; 
+
+    auto erows = vimg[0].rows;
+    auto ecols = vimg[1].cols;
+
+    for(auto e: vimg)
+    {
+
+        if (e.rows != erows || e.cols != ecols)
+        {
+            flag_samesz = 0;
+            break;
+        }
+    }
+
+
+    if (! flag_samesz)
+    {
+        
+        vector<int> vrows;
+        vector<int> vcols;
+        for (auto& eimg : vimg)
+        {
+            vrows.push_back(eimg.rows);
+            vcols.push_back(eimg.cols);
+        }
+
+
+        std::sort(vrows.begin(), vrows.end());
+        int maxrows = vrows[vrows.size() - 1];
+
+        std::sort(vcols.begin(), vcols.end());
+        int maxcols = vcols[vcols.size() - 1];
+
+
+
+        for (auto& e : vimg)
+        {
+            const uchar BLANK_PIXEL_VAL = 0;
+            cv::Mat elarge = cv::Mat(maxrows, maxcols, e.type()).setTo(BLANK_PIXEL_VAL); 
+
+            // copy e to elarge's (0,0) 
+            e.copyTo(elarge(cv::Rect(0, 0, e.cols, e.rows)));
+            vimg_ret.push_back(elarge);
+        }
+
+    }
+    else
+    {
+        vimg_ret =  vimg;
+    }
+
+    return vimg_ret;
+}
+
+cv::Mat cimg::hconcat(const vector<cv::Mat> &vimg_r0, int intv)
+{
+
+    assert(vimg_r0.size() >= 1);
+
+    if (vimg_r0.size() == 1)
+    {
+		return vimg_r0[0];
+    }
+
+    auto vimg = unify_vimg(vimg_r0);
+
+    cv::Mat img_copy_ = img_copy.clone(); 
+    if (intv == 0)
+    {
+        cv::hconcat(vimg, img_copy_);
+    }
+    else
+    {
+        // img_copy = vimg[0].clone();
+        cv::Mat img_ = vimg[0];
+        // get pixel average
+
+        cv::Scalar px_avg = cv::mean(img_);
+
+        uchar intv_val = 0;
+        if (px_avg[0] < 122)
+        {
+            intv_val = 255;
+        }
+
+        cv::Mat img_intv = create_img_rc_chn(img_.rows, intv, img_.channels());
+        img_intv.setTo(intv_val);
+
+        vector<cv::Mat> vimg_new;
+        for (auto eimg : vimg)
+        {
+            vimg_new.push_back(eimg);
+            vimg_new.push_back(img_intv);
+        }
+
+        vimg_new.pop_back();
+        // img = img_copy.clone();
+
+        cv::hconcat(vimg_new, img_copy_);
+    }
+
+    return img_copy_;
+}
+
+
+double cimg::perimeter_contour(vector<cv::Point2i> &vp)
+{
+    auto &vpi = vp;
+    // vpi = { {0,0}, {2,0}, {0,4},{-1,0} };
+    assert(vpi.size() > 0);
 
     if (vpi[0] != vpi[vpi.size() - 1])
     {
         vpi.push_back(vpi[0]);
     }
 
-
-
     auto start_p = vpi[0];
     auto p = start_p;
-
-
 
     unordered_map<string, int> d_cls{
         {"1,0", 0},
@@ -333,7 +515,6 @@ double cimg::perimeter_contour(vector<cv::Point2i>& vp)
         {"0,0", 8},
     };
 
-
     vector<int> vi{};
     for (int i = 1; i < vpi.size(); i++)
     {
@@ -341,7 +522,6 @@ double cimg::perimeter_contour(vector<cv::Point2i>& vp)
         auto n = vpi[i];
         auto xd = n.x - p.x;
         auto yd = n.y - p.y;
-
 
         auto cnt_x = abs(xd) / 1;
         auto cnt_y = abs(yd) / 1;
@@ -374,27 +554,107 @@ double cimg::perimeter_contour(vector<cv::Point2i>& vp)
             vi.push_back(d_cls[s]);
         }
 
-
         p = n;
-
     }
 
-    //cout << s_("{}", vi) << endl;
+    // cout << s_("{}", vi) << endl;
 
     return vi.size() * 1.0f;
 }
-void cimg::create_img_rc_chn(int rows, int cols, int chn)
+
+std::vector<double> cimg::linspace(double start, double stop, int num)
 {
-    img = cv::Mat(rows, cols, CV_8UC(chn)); 
+    if (num < 1)
+    {
+        throw std::invalid_argument("num must be at least 1");
+    }
+
+    std::vector<double> result(num);
+    double step = (stop - start) / (num - 1); // Calculate step size
+
+    for (int i = 0; i < num; ++i)
+    {
+        result[i] = start + step * i; // Generate evenly spaced values
+    }
+
+    return result;
+}
+
+std::string cimg::replace_str(const std::string &str, const string &from_str, const string &to_str)
+{
+
+    std::string S = str;
+
+    size_t pos = S.find(from_str);
+
+    if (pos != std::string::npos)
+    {
+
+        S.replace(pos, from_str.size(), to_str);
+    }
+
+    return S;
+}
+vector<int> cimg::R(int starti, int endi, int step)
+{
+
+    int cnt_all = (endi - starti) / step + 1;
+    if ((endi - starti) % step == 0)
+    {
+        cnt_all--;
+    }
+
+    vector<int> vi(cnt_all, 0);
+
+    // vector<int> vi((endi - starti) / step + 1, 0);
+
+    // std::iota(vi.begin(), vi.end(), starti)
+
+    int cnt = 0;
+    for (int i = starti; i < endi; i += step)
+    {
+        vi[cnt] = i;
+        cnt++;
+    }
+    assert(cnt == vi.size());
+    vi.resize(cnt);
+
+    return vi;
+}
+vector<int> cimg::R(int endi)
+{
+    // cout << "R" << "";
+    return R(0, endi, 1);
+}
+
+
+cv::Mat cimg::create_img_rc_chn(int rows, int cols, int chn)
+{
+    auto img_ = cv::Mat(rows, cols, CV_8UC(chn));
+    return img_;
+}
+
+
+void cimg::puttext(const string &text, cv::Scalar color)
+{
+
+    putText(img, "img: " + text,
+            Point(img.cols / 2 - text.size(), img.rows - text.size() / 600 - 11), FONT_HERSHEY_SIMPLEX, 0.6, color, 1);
+}
+
+void cimg::puttext(cv::Mat &img_, const string &text, cv::Scalar color)
+{
+    putText(img_, "img: " + text,
+            Point(img_.cols / 2 - text.size(), img_.rows - text.size() / 600 - 11), FONT_HERSHEY_SIMPLEX, 0.6, color, 1);
 }
 void cimg::resize(float scale_f)
 {
-//    assert(img.channels() < 4);
+    //    assert(img.channels() < 4);
     cv::resize(img, img, cv::Size((int)(img.cols * scale_f), int(img.rows * scale_f)));
-   
 }
-
-cv::Mat cimg::P(const vector<float>& data, int flag_show) 
+#if 0
+template <typename T>
+cv::Mat cimg::P(const vector<T>& data, int flag_show) 
 {
     if (data.empty()) {
         cout << "Data vector is empty!" << endl;
@@ -402,8 +662,8 @@ cv::Mat cimg::P(const vector<float>& data, int flag_show)
     }
 
     // 计算数据的最大值和最小值  
-    double maxValue = *max_element(data.begin(), data.end());
-    double minValue = *min_element(data.begin(), data.end());
+    auto maxValue = *max_element(data.begin(), data.end());
+    auto minValue = *min_element(data.begin(), data.end());
 
     int width = 900;
     int height = 600;
@@ -455,18 +715,25 @@ cv::Mat cimg::P(const vector<float>& data, int flag_show)
 
     auto tostring_02f=[](float f)
     {
-        char buf[1024];
-        sprintf_s(buf, "%0.2f", f);
-        string sb(buf);
-        return sb;
+            char buf[1024] = { 0 };
+
+            sprintf_s(buf, "%0.2f", std::round(f * 100) / 100.0f);
+            string sb(buf);
+
+            cimg ci; 
+            sb = ci.replace_str(sb, ".00", "");
+            
+            return sb;
     };
+
+
 
     // 用箭头标注最大值及其位置  
     int maxIndex = distance(data.begin(), max_element(data.begin(), data.end()));
     int maxX = 50 + (maxIndex * (width - 100) / (dataSize - 1));
     int maxY = height - 50 - (maxValue / maxValue * (height - 100)); // maxY 永远是顶部  
 
-    putText(image, "Max: " + tostring_02f(maxValue) + " at index " + to_string(maxIndex),
+    putText(image, "v:" + tostring_02f(maxValue) + ",i:" + to_string(maxIndex),
         Point(maxX + 10, maxY - 10), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0, 0, 0), 1);
 
     // 用箭头标注最小值及其位置  
@@ -475,22 +742,169 @@ cv::Mat cimg::P(const vector<float>& data, int flag_show)
     int minY = height - 50 - (minValue / maxValue * (height - 100)); // 最小值的 y 坐标  
 
     
-    putText(image, "Min: " + tostring_02f(minValue) + " at index " + to_string(minIndex),
+    putText(image, "v:" + tostring_02f(minValue) + ",i:" + to_string(minIndex),
         Point(minX + 10, minY + 15), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0, 0, 0), 1);
 
     // 显示图像  
     
+    if (flag_show)
+    {
+        s_i(image);
+    }
 
     return image;
     //imshow(windowName, image);
     //waitKey(0);
 }
+#endif
+
+#if 1
+
+template <typename T>
+cv::Mat cimg::P(const vector<T> &data, int flag_show)
+{
+    if (data.empty())
+    {
+        cout << "Data vector is empty!" << endl;
+        return cv::Mat();
+    }
+
+    // Calculate data max and min values
+    auto maxValue = *max_element(data.begin(), data.end());
+    auto minValue = *min_element(data.begin(), data.end());
+
+    // Determine scaled height based on range
+    double range = maxValue - minValue;
+    if (range == 0)
+        range = 1; // Avoid division by zero if all values are the same
+
+    int width = 900;
+    int height = 600;
+    Mat image(height, width, CV_8UC3, Scalar(211, 233, 222)); // Light background
+
+    // Draw axes
+    line(image, Point(50, height - 50), Point(50, 50), Scalar(0, 0, 0), 2);                  // y axis
+    line(image, Point(50, height - 50), Point(width - 50, height - 50), Scalar(0, 0, 0), 2); // x axis
+
+    // Draw y-axis ticks
+    for (int i = 0; i <= 10; i++)
+    {
+        int y = height - 50 - (i * (height - 100) / 10);
+        line(image, Point(45, y), Point(55, y), Scalar(0, 0, 0), 1);
+        putText(image, to_string(static_cast<int>(minValue + i * (range / 10))), Point(10, y + 5), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 0), 1);
+    }
+
+    // Draw x-axis ticks
+    int dataSize = static_cast<int>(data.size());
+    for (int i = 0; i < dataSize; i += dataSize / 10)
+    {
+        int x = 50 + (i * (width - 100) / (dataSize - 1));
+        line(image, Point(x, height - 45), Point(x, height - 55), Scalar(0, 0, 0), 1);
+        putText(image, to_string(i), Point(x - 10, height - 30), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 0), 1);
+    }
+
+    // Draw data
+    double prevX = 50 + (0 * (width - 100) / (dataSize - 1));
+    double prevY = height - 50 - ((static_cast<double>(data[0]) - minValue) / range * (height - 100)); // Normalize
+
+    for (int i = 0; i < dataSize; i++)
+    {
+        double normalizedValue = (static_cast<double>(data[i]) - minValue) / range; // Normalize between 0 and 1
+        double x = 50 + (i * (width - 100) / (dataSize - 1));
+        double y = height - 50 - (normalizedValue * (height - 100));
+
+        // Draw point
+        circle(image, Point(x, y), 5, Scalar(0, 0, 255), -1); // Red circle for data point
+
+        // Draw line segment
+        if (i > 0)
+        {
+            line(image, Point(prevX, prevY), Point(x, y), Scalar(255, 0, 0), 2);
+        }
+
+        // Update previous point
+        prevX = x;
+        prevY = y;
+    }
+
+    auto tostring_02f = [](float f)
+    {
+        char buf[1024] = {0};
+        sprintf_s(buf, "%0.2f", std::round(f * 100) / 100.0f);
+        string sb(buf);
+        cimg ci;
+        sb = ci.replace_str(sb, ".00", "");
+        return sb;
+    };
+
+    // Label max value
+    int maxIndex = distance(data.begin(), max_element(data.begin(), data.end()));
+    int maxX = 50 + (maxIndex * (width - 100) / (dataSize - 1));
+    int maxY = height - 50 - ((maxValue - minValue) / range * (height - 100)); // Adjusted for minValue
+
+    putText(image, "v:" + tostring_02f(maxValue) + ",i:" + to_string(maxIndex),
+            Point(maxX + 10, maxY - 10), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0, 0, 0), 1);
+
+    // Label min value
+    int minIndex = distance(data.begin(), min_element(data.begin(), data.end()));
+    int minX = 50 + (minIndex * (width - 100) / (dataSize - 1));
+    int minY = height - 50 - ((minValue - minValue) / range * (height - 100)); // minY is adjusted
+
+    putText(image, "v:" + tostring_02f(minValue) + ",i:" + to_string(minIndex),
+            Point(minX + 10, minY - 15), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0, 0, 0), 1);
+
+    // Show image
+    if (flag_show)
+    {
+        s_i(image);
+    }
+
+    return image;
+}
+#endif
+
+
+
+
+cv::Mat cimg::find_contours(int dst_val, int dst_sz)
+{
+    // std::vector<std::vector<cv::Point>> v_contours;
+    cv::findContours(img, v_contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+
+    img_contour_mask = cv::Mat::zeros(img.size(), CV_8UC1);
+    cv::drawContours(img_contour_mask, v_contours, -1, cv::Scalar(dst_val), cv::FILLED);
+
+    img_contour_line = cv::Mat::zeros(img.size(), CV_8UC1);;
+    int line_size = 1; 
+    cv::drawContours(img_contour_line, v_contours, -1, cv::Scalar(dst_val), line_size);
+
+    int w = img.cols;
+    int h = img.rows;
+    double f = 1;
+    int dstsz = dst_sz;
+    if (w > dstsz)
+    {
+        f = w * 1.0 / dstsz;
+        w = w * 1.0 / f;
+        h = h * 1.0 / f;
+    }
+
+    cv::Rect bb(0, 0, w, h);
+    return hconcat({ img(bb),img_contour_mask(bb), img_contour_line(bb) }, 4);
+}
+
+void cimg::threshold(int thres, int dst_val)
+{
+    assert(img.channels() == 1);
+    cv::threshold(img, img, thres, dst_val, cv::THRESH_BINARY);
+}
+
 
 
 void cimg::hist_img(string fn)
 {
-    auto & ci = *this;
-    //string fn = "d:/jd/t/img_rgb_cmp/_007/_007_ok/d_rgb_w.jpg";
+    auto &ci = *this;
+    // string fn = "d:/jd/t/img_rgb_cmp/_007/_007_ok/d_rgb_w.jpg";
     ci.read_img(fn);
     std::vector<cv::Mat> channels;
     cv::split(ci.img, channels);
@@ -498,9 +912,10 @@ void cimg::hist_img(string fn)
     // ????每??通?赖?直??图
     std::vector<cv::Mat> hist(3);
     int histSize = 256;
-    float range[] = { 0, 256 };
-    const float* histRange = { range };
-    for (int i = 0; i < 3; i++) {
+    float range[] = {0, 256};
+    const float *histRange = {range};
+    for (int i = 0; i < 3; i++)
+    {
         cv::calcHist(&channels[i], 1, 0, cv::Mat(), hist[i], 1, &histSize, &histRange);
     }
 
@@ -511,22 +926,24 @@ void cimg::hist_img(string fn)
     cv::normalize(hist[0], hist[0], 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat());
     cv::normalize(hist[1], hist[1], 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat());
     cv::normalize(hist[2], hist[2], 0, histImage.rows, cv::NORM_MINMAX, -1, cv::Mat());
-    for (int i = 1; i < histSize; i++) {
+    for (int i = 1; i < histSize; i++)
+    {
         cv::line(histImage, cv::Point(bin_w * (i - 1), hist_h - cvRound(hist[0].at<float>(i - 1))),
-            cv::Point(bin_w * (i), hist_h - cvRound(hist[0].at<float>(i))),
-            cv::Scalar(255, 0, 0), 2, 8, 0);
+                 cv::Point(bin_w * (i), hist_h - cvRound(hist[0].at<float>(i))),
+                 cv::Scalar(255, 0, 0), 2, 8, 0);
         cv::line(histImage, cv::Point(bin_w * (i - 1), hist_h - cvRound(hist[1].at<float>(i - 1))),
-            cv::Point(bin_w * (i), hist_h - cvRound(hist[1].at<float>(i))),
-            cv::Scalar(0, 255, 0), 2, 8, 0);
+                 cv::Point(bin_w * (i), hist_h - cvRound(hist[1].at<float>(i))),
+                 cv::Scalar(0, 255, 0), 2, 8, 0);
         cv::line(histImage, cv::Point(bin_w * (i - 1), hist_h - cvRound(hist[2].at<float>(i - 1))),
-            cv::Point(bin_w * (i), hist_h - cvRound(hist[2].at<float>(i))),
-            cv::Scalar(0, 0, 255), 2, 8, 0);
+                 cv::Point(bin_w * (i), hist_h - cvRound(hist[2].at<float>(i))),
+                 cv::Scalar(0, 0, 255), 2, 8, 0);
     }
 
     // ???雍???????
     cv::line(histImage, cv::Point(0, hist_h), cv::Point(hist_w, hist_h), cv::Scalar(0, 0, 0), 1, 8, 0);
     cv::line(histImage, cv::Point(0, hist_h), cv::Point(0, 0), cv::Scalar(0, 0, 0), 1, 8, 0);
-    for (int i = 0; i < histSize; i += 32) {
+    for (int i = 0; i < histSize; i += 32)
+    {
         cv::line(histImage, cv::Point(bin_w * i, hist_h), cv::Point(bin_w * i, hist_h - 5), cv::Scalar(0, 0, 0), 1, 8, 0);
         cv::line(histImage, cv::Point(bin_w * i, hist_h), cv::Point(bin_w * i, 0), cv::Scalar(0, 0, 0), 1, 8, 0);
         std::stringstream ss;
@@ -537,10 +954,7 @@ void cimg::hist_img(string fn)
     // ????直??图图??
     cv::imwrite("histogram.png", histImage);
 
-
     cout << "ok" << endl;
-
-
 }
 void cimg::td_sleep(double seconds)
 {
@@ -552,7 +966,7 @@ void cimg::td_sleep(double seconds)
 string cimg::get_env(string env_name)
 {
     const int TO_READ_SZ = 1024;
-    char* buf = nullptr;
+    char *buf = nullptr;
     size_t bufcnt = -1;
     auto err = _dupenv_s(&buf, &bufcnt, env_name.c_str());
     string str_buf = "NULL";
@@ -561,26 +975,26 @@ string cimg::get_env(string env_name)
     {
         str_buf = string(buf);
     }
-    //assert(err == 0);
-    //assert(buf != nullptr);
+    // assert(err == 0);
+    // assert(buf != nullptr);
 
-    //string str_buf(buf);
+    // string str_buf(buf);
     delete[] buf;
     return str_buf;
 }
 
-
 string cimg::run_cmd(string cmd_)
 {
-    // windows pipe _popen() 
+    // windows pipe _popen()
     const int TO_READ_SZ = 10240;
-    char* res = new char[TO_READ_SZ];
+    char *res = new char[TO_READ_SZ];
     memset(res, '\0', TO_READ_SZ);
     auto cmd = cmd_.c_str();
 
-    FILE* pf = _popen(cmd, "r");
+    FILE *pf = _popen(cmd, "r");
 
-    if (0 != fread(res, TO_READ_SZ, 1, pf)) {
+    if (0 != fread(res, TO_READ_SZ, 1, pf))
+    {
         printf("- cannot run system cmd %s\n", cmd);
         return "NULL";
     };
@@ -595,32 +1009,28 @@ void cimg::read_cmyimage_11chn_add_dna(string fn)
 {
 
 #if 1
-    //string dirname = "D:\\jd\\t\\platform_test_data\\";
+    // string dirname = "D:\\jd\\t\\platform_test_data\\";
 
-    //string fn = dirname + "t0_133\\w_2464_h_2056_chn_11_si_8_fx_3_fy_4_tm_20230808_124322.dat";
+    // string fn = dirname + "t0_133\\w_2464_h_2056_chn_11_si_8_fx_3_fy_4_tm_20230808_124322.dat";
     int w = 2464;
     int h = 2056;
     int chn = 1;
-    int& cols = w;
-    int& rows = h;
+    int &cols = w;
+    int &rows = h;
 
     string bin_content = read_bin_to_string(fn);
     assert(bin_content.size() == 12 * rows * cols);
 
-    uchar* imgdata_r0 = (uchar*)bin_content.data();
-    uchar* imgdata = imgdata_r0;
+    uchar *imgdata_r0 = (uchar *)bin_content.data();
+    uchar *imgdata = imgdata_r0;
 
     auto img_ = cv::Mat(rows, cols, CV_8UC(3));
-
-
-
 
     std::copy_n(imgdata, rows * cols * 3, img_.data);
     cv::imwrite("d:/jd/t/t0/c_0_1_2_rgb.jpg", img_);
 
-
-    vector<cv::Mat> v_mat; 
-    v_mat.resize(12); 
+    vector<cv::Mat> v_mat;
+    v_mat.resize(12);
 
     v_mat.push_back(img_);
     v_mat.push_back(img_);
@@ -628,32 +1038,27 @@ void cimg::read_cmyimage_11chn_add_dna(string fn)
 
     for (int chn_ = 0; chn_ < 12; chn_++)
     {
-        if (chn_ < 3) continue;
+        if (chn_ < 3)
+            continue;
 
-
-        auto* img_addr = imgdata_r0 + chn_ * rows * cols; 
+        auto *img_addr = imgdata_r0 + chn_ * rows * cols;
         auto img_c = cv::Mat(rows, cols, CV_8UC(1));
         std::copy_n(img_addr, rows * cols * 1, img_c.data);
         auto fn_c = s_("d:/jd/t/t0/c_{}.jpg", chn_);
         cv::imwrite(fn_c.c_str(), img_c);
         v_mat.push_back(img_c);
-
-
     }
 
+    // auto diff_mat = v_mat[3] - v_mat[11];
 
-    //auto diff_mat = v_mat[3] - v_mat[11];
-    
-
-
-#endif 
+#endif
 }
-cv::Mat cimg::get_rectangle_mat(cv::Mat& id_m32, int start_rows, int end_rows, int start_cols, int end_cols)
+cv::Mat cimg::get_rectangle_mat(cv::Mat &id_m32, int start_rows, int end_rows, int start_cols, int end_cols)
 {
     // end_rows  include!!!
     int rows = id_m32.rows;
     int cols = id_m32.cols;
-    int sz_rows = end_rows - start_rows + 1;  // coordinate of end_rows
+    int sz_rows = end_rows - start_rows + 1; // coordinate of end_rows
     int sz_cols = end_cols - start_cols + 1;
 
     assert(rows >= sz_rows);
@@ -661,16 +1066,18 @@ cv::Mat cimg::get_rectangle_mat(cv::Mat& id_m32, int start_rows, int end_rows, i
 
     cv::Mat id_mm(sz_rows, sz_cols, CV_8UC(id_m32.channels()));
 
-    for (int i = start_rows; i < end_rows; i++) {
-        for (int j = start_cols; j < end_cols; j++) {
+    for (int i = start_rows; i < end_rows; i++)
+    {
+        for (int j = start_cols; j < end_cols; j++)
+        {
 
             auto t_from = id_m32.row(i).col(j);
             auto t_to = id_mm.row(i - start_rows).col(j - start_cols);
 
-            for (int c = 0; c < id_m32.channels(); c++) {
+            for (int c = 0; c < id_m32.channels(); c++)
+            {
 
                 t_to.data[c] = t_from.data[c];
-
             }
         }
 
@@ -680,23 +1087,20 @@ cv::Mat cimg::get_rectangle_mat(cv::Mat& id_m32, int start_rows, int end_rows, i
 
 void cimg::read_cmyimage(string fn)
 {
-    //string dirname = "D:\\jd\\t\\platform_test_data\\";
+    // string dirname = "D:\\jd\\t\\platform_test_data\\";
 
-    //string fn = dirname + "t0_133\\w_2464_h_2056_chn_11_si_8_fx_3_fy_4_tm_20230808_124322.dat";
+    // string fn = dirname + "t0_133\\w_2464_h_2056_chn_11_si_8_fx_3_fy_4_tm_20230808_124322.dat";
     int w = 2464;
     int h = 2056;
     int chn = 1;
-    int& cols = w;
-    int& rows = h;
+    int &cols = w;
+    int &rows = h;
 
     string bin_content = read_bin_to_string(fn);
     assert(bin_content.size() == 8 * rows * cols);
 
-    uchar* imgdata = (uchar*)bin_content.data();
+    uchar *imgdata = (uchar *)bin_content.data();
     auto img_ = cv::Mat(rows, cols, CV_8UC(3));
-
-
-
 
     std::copy_n(imgdata, rows * cols * 3, img_.data);
     vector<cv::Mat> vm_;
@@ -706,65 +1110,50 @@ void cimg::read_cmyimage(string fn)
     auto start = 888;
     auto end = start + 1024;
 
-
-
-
-
-
-
     vector<cv::Mat> vm;
     vm.resize(5 + 3 - 3);
 
     int start_chn = 3;
-    for (auto& em : vm)
+    for (auto &em : vm)
     {
         em = cv::Mat(rows, cols, CV_8UC(1));
         std::copy_n(imgdata + rows * cols * start_chn, rows * cols * 1, em.data);
         start_chn++;
-        //ci.s_i(em);
+        // ci.s_i(em);
     }
     int idx = 0;
-    auto& i3_ = vm[idx++];  // i3_ == dna_ image 
-    auto& i4_ = vm[idx++];   // DAB image 
+    auto &i3_ = vm[idx++]; // i3_ == dna_ image
+    auto &i4_ = vm[idx++]; // DAB image
 
-    auto& dna_ = vm[idx++];
+    auto &dna_ = vm[idx++];
 
-
-
-    auto& overlay_ = vm[idx++];
-    auto& contour_ = vm[idx++];
-
+    auto &overlay_ = vm[idx++];
+    auto &contour_ = vm[idx++];
 
     for (auto em : vm)
     {
-        cv::Mat em_cut = em({ 100,100 + 256 }, { 300,300 + 256 });
+        cv::Mat em_cut = em({100, 100 + 256}, {300, 300 + 256});
         // s_i(em_cut);
-         //cv::imwrite("d:/jd/t/"+ get_timestamp() + ".jpg", em_cut);
-         //td_sleep(0.5);
-
+        // cv::imwrite("d:/jd/t/"+ get_timestamp() + ".jpg", em_cut);
+        // td_sleep(0.5);
     }
 
+    cv::imwrite("b.jpg", vm_[0]({start, end}, {start, end}));
+    cv::imwrite("g.jpg", vm_[1]({start, end}, {start, end}));
+    cv::imwrite("r.jpg", vm_[2]({start, end}, {start, end}));
 
-
-    cv::imwrite("b.jpg", vm_[0]({ start,end }, { start,end }));
-    cv::imwrite("g.jpg", vm_[1]({ start,end }, { start,end }));
-    cv::imwrite("r.jpg", vm_[2]({ start,end }, { start,end }));
-
-    cv::imwrite("rgb.jpg", img_({ start,end }, { start,end }));
-    cv::imwrite("dna_gray.jpg", dna_({ start,end }, { start,end }));
-    cv::imwrite("overlay.bmp", overlay_({ start,end }, { start,end }));
+    cv::imwrite("rgb.jpg", img_({start, end}, {start, end}));
+    cv::imwrite("dna_gray.jpg", dna_({start, end}, {start, end}));
+    cv::imwrite("overlay.bmp", overlay_({start, end}, {start, end}));
     // cv::imwrite("overlay.png", overlay_({ start,end }, { start,end }), { IMWRITE_PNG_COMPRESSION, 0 });
-
 }
 
-
-vector<string> cimg::split_str_2_vec(string& str, const char delimiter)
+vector<string> cimg::split_str_2_vec(string &str, const char delimiter)
 {
-
 
     string eline = "1,2,4,77,99";
     eline = str;
-    //cout << eline << endl;
+    // cout << eline << endl;
 
     int next = 0;
     char sp = delimiter;
@@ -779,19 +1168,19 @@ vector<string> cimg::split_str_2_vec(string& str, const char delimiter)
 
         if (e == sp)
         {
-            //cout << string(eline.begin() + prev , eline.begin() + next) << endl;; 
+            // cout << string(eline.begin() + prev , eline.begin() + next) << endl;;
 
-            //v_s.push_back(eline.substr(prev, next - prev));
-            sub_loc.push_back({ prev, (int)(next - prev) });
+            // v_s.push_back(eline.substr(prev, next - prev));
+            sub_loc.push_back({prev, (int)(next - prev)});
             prev = next + 1;
         }
         next++;
     }
 
-    //cout << string(eline.begin() + prev, eline.end()) << endl;; 
-    //v_s.push_back(eline.substr(prev, eline.end() - eline.begin() - prev));
+    // cout << string(eline.begin() + prev, eline.end()) << endl;;
+    // v_s.push_back(eline.substr(prev, eline.end() - eline.begin() - prev));
 
-    sub_loc.push_back({ prev, (int)(eline.end() - eline.begin() - prev) });
+    sub_loc.push_back({prev, (int)(eline.end() - eline.begin() - prev)});
 
     for (auto ep : sub_loc)
     {
@@ -799,7 +1188,6 @@ vector<string> cimg::split_str_2_vec(string& str, const char delimiter)
         vec_ret.push_back(sub_str);
     }
     return vec_ret;
-
 
 #if 0
     vector<string> vec_ret{};
@@ -811,26 +1199,23 @@ vector<string> cimg::split_str_2_vec(string& str, const char delimiter)
         vec_ret.push_back(line);
     }
 
-#endif 
+#endif
 
     return vec_ret;
 }
-
-
 
 vector<string> cimg::read_txt_to_vec_str(string fn)
 {
     int has_header = 1;
     vector<string> vstr{};
 
-    //vector<vector<double>> v_row_col;
+    // vector<vector<double>> v_row_col;
 
     ifstream if_(fn, ios::in);
 
     assert(if_.is_open());
 
     string e_line;
-
 
     while (getline(if_, e_line))
     {
@@ -842,12 +1227,11 @@ vector<string> cimg::read_txt_to_vec_str(string fn)
     return vstr;
 }
 
-
 void cimg::read_txt_to_img(string fn, int flag_has_header)
 {
     int has_header = 1;
 
-    //vector<vector<double>> v_row_col;
+    // vector<vector<double>> v_row_col;
 
     ifstream if_(fn, ios::in);
 
@@ -864,7 +1248,6 @@ void cimg::read_txt_to_img(string fn, int flag_has_header)
         for (auto e : v_s)
         {
             cout << e << endl;
-
         }
 
         int idx = 0;
@@ -878,7 +1261,6 @@ void cimg::read_txt_to_img(string fn, int flag_has_header)
         cols = atoi(v_s[idx].substr(loc).c_str());
         idx++;
 
-
         loc = v_s[idx].find_last_of(" ");
         assert(loc > 0);
         channels = atoi(v_s[idx].substr(loc).c_str());
@@ -886,7 +1268,6 @@ void cimg::read_txt_to_img(string fn, int flag_has_header)
 
         cout << rows << cols << channels << endl;
         break;
-
     }
 
     img = cv::Mat(rows, cols, CV_8UC(channels));
@@ -895,11 +1276,11 @@ void cimg::read_txt_to_img(string fn, int flag_has_header)
     while (getline(if_, e_line))
     {
         auto v_s = split_str_2_vec(e_line, ',');
-        uchar* tr = img.row(r).data;
+        uchar *tr = img.row(r).data;
         int cnt = 0;
-        for (auto& es : v_s)
+        for (auto &es : v_s)
         {
-            auto& etr = tr[cnt];
+            auto &etr = tr[cnt];
             etr = (uchar)atoi(es.c_str());
 
             cnt++;
@@ -910,9 +1291,7 @@ void cimg::read_txt_to_img(string fn, int flag_has_header)
     assert(r == rows);
 
     if_.close();
-
 }
-
 
 void cimg::write_mat_to_txt(string filename, int flag = 0)
 {
@@ -920,15 +1299,17 @@ void cimg::write_mat_to_txt(string filename, int flag = 0)
     int i = 0;
     int j = 0;
     string sb = "";
-    char buf[128] = { 0 };
-
+    char buf[128] = {0};
 
     int rows, cols, channels;
     rows = img.rows;
     cols = img.cols;
     channels = img.channels();
-    ofstream of_t(filename, ios::binary); assert(of_t.is_open()); of_t.close();  // just clear file content 
-    ofstream of_(filename, ios::app);  assert(of_.is_open());
+    ofstream of_t(filename, ios::binary);
+    assert(of_t.is_open());
+    of_t.close(); // just clear file content
+    ofstream of_(filename, ios::app);
+    assert(of_.is_open());
     if (flag == 0)
     {
         sprintf_s(buf, "cols = %d;rows = %d;channels = %d\n", rows, cols, channels);
@@ -938,20 +1319,17 @@ void cimg::write_mat_to_txt(string filename, int flag = 0)
     of_ << sb;
 
     const int LEN_BUF = 3072 * 4 * 3;
-    char* buf_big = new char[LEN_BUF];
-    char* buf_big_r0 = buf_big;
+    char *buf_big = new char[LEN_BUF];
+    char *buf_big_r0 = buf_big;
 
     assert(buf_big_r0 != nullptr);
 
     int buf_big_offset = 0;
     int sum_offset = 0;
 
-
-
-
     for (i = 0; i < rows; i++)
     {
-        uchar* tr = img.row(i).data;
+        uchar *tr = img.row(i).data;
 
         for (int j = 0; j < cols * channels - 1; j++)
         {
@@ -968,14 +1346,12 @@ void cimg::write_mat_to_txt(string filename, int flag = 0)
 
         of_ << buf_big_r0;
 
-
         sum_offset = 0;
         buf_big = buf_big_r0;
     }
 
     delete[] buf_big_r0;
     of_.close();
-
 }
 
 void cimg::fcoutln(string fn, string id_s, string flag_w)
@@ -986,9 +1362,10 @@ void cimg::fcoutln(string fn, string id_s, string flag_w)
         F_W = ios::app;
     }
 
-    //const auto F_W = (ios::out | ios::trunc);
+    // const auto F_W = (ios::out | ios::trunc);
     ofstream if_(fn.c_str(), F_W);
-    if (!if_.is_open()) {
+    if (!if_.is_open())
+    {
         cout << "- make sure the file path is accessible!" << endl;
     }
     assert(if_.is_open());
@@ -1005,9 +1382,10 @@ void cimg::fcout(string fn, string id_s, string flag_w)
         F_W = ios::app;
     }
 
-    //const auto F_W = (ios::out | ios::trunc);
+    // const auto F_W = (ios::out | ios::trunc);
     ofstream if_(fn.c_str(), F_W);
-    if (!if_.is_open()) {
+    if (!if_.is_open())
+    {
         cout << "- make sure the file path is accessible!" << endl;
     }
     assert(if_.is_open());
@@ -1018,48 +1396,153 @@ void cimg::fcout(string fn, string id_s, string flag_w)
 
 void cimg::write_mat_to_csv(string fn)
 {
-    ofstream of_(fn); assert(of_.is_open());
+    ofstream of_(fn);
+    assert(of_.is_open());
 
     for (int r = 0; r < img.rows; r++)
     {
-        uchar* tr = img.row(r).data;
+        uchar *tr = img.row(r).data;
 
         auto cols = img.cols;
         auto chn = img.channels();
-        //of_.write((char*)tr, cols * chn);
+        // of_.write((char*)tr, cols * chn);
     }
-
 }
 
-
-void cimg::str_to_bin_file(string fn, string& str_to_serial)
+void cimg::str_to_bin_file(string fn, string &str_to_serial)
 {
     ofstream of_(fn.c_str(), ios::binary);
-    of_ << str_to_serial;  // never have "<< endl";
+    of_ << str_to_serial; // never have "<< endl";
     of_.close();
 }
 
 
-void cimg::serial_to_mat(const string & fn)
+std::vector<std::string> cimg::filter_out_vstr(std::vector<std::string>& vstr, const std::string& pattern) 
+{
+    // vstr = ci.filter_out_vstr(vstr, R"(^#.*)");
+    std::regex regex_pattern(pattern);
+    vstr.erase(
+        std::remove_if(vstr.begin(), vstr.end(),
+            [&regex_pattern](const std::string& s) {
+        return std::regex_match(s, regex_pattern);
+    }),
+        vstr.end());
+
+    return vstr;
+}
+
+std::vector<std::string> cimg::get_file_list(const std::string& dir_or_pattern, bool recursive)
+{
+    std::vector<cv::String> cv_paths;
+    std::vector<std::string> result;
+
+    // Use glob to get all matching files
+    cv::glob(dir_or_pattern, cv_paths, recursive);
+
+    // Convert cv::String to std::string
+    for (const auto& path : cv_paths)
+    {
+        result.push_back(std::string(path));
+    }
+
+    return result;
+}
+
+std::vector<std::string> cimg::filter_vstr(std::vector<std::string>& vstr, const std::string& pattern) 
+{
+    std::regex regex_pattern(pattern);
+    vstr.erase(
+        std::remove_if(vstr.begin(), vstr.end(),
+            [&regex_pattern](const std::string& s) {
+        return ! std::regex_match(s, regex_pattern);
+    }),
+        vstr.end());
+
+    return vstr;
+}
+
+template <typename T>
+std::vector<T> cimg::combine_vec(const std::vector<T> &v0, const std::vector<T> &v1)
+{
+    // Preallocate the combined vector with the total size of both input vectors
+    std::vector<T> combined;
+    combined.reserve(v0.size() + v1.size()); // Reserve space to avoid multiple allocations
+
+    // Copy elements from the first vector
+    combined.insert(combined.end(), v0.begin(), v0.end());
+    // Copy elements from the second vector
+    combined.insert(combined.end(), v1.begin(), v1.end());
+
+    return combined; // Return the combined vector
+}
+
+template <typename T>
+T cimg::sum_vec(const vector<T> &v)
+{
+
+    T sum = 0;
+    for (auto &e : v)
+    {
+        sum += e;
+    }
+
+    return sum;
+}
+
+template <typename T>
+vector<T> cimg::diff_v(const vector<T> &v)
+{
+    assert(v.size() >= 2);
+    std::vector<T> diff_p(v.size());
+    std::adjacent_difference(v.begin(), v.end(), diff_p.begin());
+
+    return vector<T>(diff_p.begin() + 1, diff_p.end());
+}
+
+template <typename T>
+float cimg::stddev_vec(const vector<T> &v)
+{
+    float sumOfSquares = 0.0f;
+    auto mean = mean_vec(v);
+
+    for (float num : v)
+    {
+        sumOfSquares += (num - mean) * (num - mean);
+    }
+
+    return std::sqrt(sumOfSquares / v.size());
+}
+
+template <typename T>
+float cimg::mean_vec(const vector<T> &v)
+{
+
+    float sum = 0.0f;
+
+    sum += sum_vec(v);
+
+    return sum * 1.0f / v.size();
+}
+
+void cimg::serial_to_mat(const string &fn)
 {
     cv::FileStorage fs(fn, cv::FileStorage::WRITE);
-    fs << "matrix" << img; // "matrix" is the key, and mat is the value  
+    fs << "matrix" << img; // "matrix" is the key, and mat is the value
     fs.release();
 }
-void cimg::deserial_from_mat(const string& fn)
+void cimg::deserial_from_mat(const string &fn)
 {
     cv::FileStorage fs(fn, cv::FileStorage::READ);
     // cv::Mat mat;
-    fs["matrix"] >> img; // Read the matrix with the key "matrix"  
+    fs["matrix"] >> img; // Read the matrix with the key "matrix"
     fs.release();
 }
-
 
 string cimg::info()
 {
 
     string sb = "";
-    char buf[128] = { 0 };
+    char buf[128] = {0};
 
     int rows, cols, channels;
     rows = img.rows;
@@ -1070,54 +1553,47 @@ string cimg::info()
     sb += buf;
 
     return string(buf);
-
 }
-
-
 
 void cimg::write_mat_to_bin(string fn)
 {
-    ofstream of_(fn, ios::binary); assert(of_.is_open());
-
+    ofstream of_(fn, ios::binary);
+    assert(of_.is_open());
 
     for (int r = 0; r < img.rows; r++)
     {
-        uchar* tr = img.row(r).data;
+        uchar *tr = img.row(r).data;
 
         auto cols = img.cols;
         auto chn = img.channels();
-        of_.write((char*)tr, cols * chn);
+        of_.write((char *)tr, cols * chn);
     }
 
     of_.close();
-
 }
 string cimg::read_bin_to_string(string fn)
 {
 
     // first get fn size
-    std::ifstream stream(fn,ios::binary); assert(stream.is_open());
+    std::ifstream stream(fn, ios::binary);
+    assert(stream.is_open());
     stream.seekg(0, stream.end);
     size_t size_ = stream.tellg();
-    //stream.seekg(0, stream.beg);
+    // stream.seekg(0, stream.beg);
     stream.close();
-    //cout << size_ << endl;
+    // cout << size_ << endl;
 
-    // read content 
+    // read content
     std::ifstream if_(fn, ios::binary);
     string bin(size_, '\0');
-    if_.read((char*)bin.data(), size_);
+    if_.read((char *)bin.data(), size_);
     auto readok_bytes = if_.gcount();
     assert(readok_bytes == static_cast<std::streamsize>(size_));
-
 
     if_.close();
 
     return bin;
 }
-
-
-
 
 #if 1
 void cimg::read_bin_to_mat(string fn, int rows, int cols, int channels)
@@ -1127,7 +1603,8 @@ void cimg::read_bin_to_mat(string fn, int rows, int cols, int channels)
         throw std::runtime_error("No binary file specified");
 
     // load bit stream
-    std::ifstream stream(fn,ios::binary); assert(stream.is_open());
+    std::ifstream stream(fn, ios::binary);
+    assert(stream.is_open());
 
     stream.seekg(0, stream.end);
     size_t size_ = stream.tellg();
@@ -1138,25 +1615,23 @@ void cimg::read_bin_to_mat(string fn, int rows, int cols, int channels)
     auto readok_bytes = stream.gcount();
     assert(readok_bytes == static_cast<std::streamsize>(size_));
 
-    //auto cols = size / rows; 
+    // auto cols = size / rows;
     assert(cols * rows * channels == size_);
 
     img = cv::Mat(rows, cols, CV_8UC(channels));
 
-
-    auto* src = bin.data();
+    auto *src = bin.data();
 
     for (auto r = 0; r < rows; r++)
     {
 
-        uchar* tr = img.row(r).data;
+        uchar *tr = img.row(r).data;
 
         memcpy(tr, src, cols * channels);
         src += cols * channels;
     }
-
 }
-#endif 
+#endif
 void cimg::normalized()
 {
     cv::normalize(img, img, 0, 255, cv::NORM_MINMAX);
@@ -1166,30 +1641,109 @@ void cimg::cvtcolor(string colormode)
 {
     img.copyTo(img_copy);
 
-
     if (img.channels() == 3 && colormode == "RGB")
     {
         cv::cvtColor(img, img, cv::COLOR_BGR2RGB);
     }
-
+    else if (img.channels() == 4 && colormode == "RGB")
+    {
+        cv::cvtColor(img, img, cv::COLOR_BGRA2RGB);
+    }
+	else if (img.channels() == 1 && colormode == "RGB")
+	{
+        cv::cvtColor(img, img, cv::COLOR_GRAY2BGR);
+	}
+	
     if (colormode == "GRAY" || colormode == "gray")
     {
-        cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
+		if (img.channels() == 3)
+		{
+			cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
+		}
+		else if (img.channels() == 4)
+		{
+			cv::cvtColor(img, img, cv::COLOR_BGRA2GRAY);
+		}
+        // cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
         assert(img.channels() == 1);
     }
 }
-void cimg::read_img(string fn)
+
+void cimg::read_img_gif(const std::string& filename, int frameIndex)
 {
-    img = cv::imread(fn, cv::IMREAD_UNCHANGED);
+    cv::VideoCapture cap(filename);
+
+    if (!cap.isOpened())
+    {
+        return;
+    }
+
+    cv::Mat frame;
+    int currentIndex = 0;
+
+    while (true)
+    {
+        cap >> frame;
+        if (frame.empty())
+        {
+            break;
+        }
+
+        if (currentIndex == frameIndex)
+        {
+            cap.release();
+			img = frame.clone(); // Store the frame in the img member variable
+            return ;
+        }
+
+        currentIndex++;
+    }
+
+    cap.release();
+    return;
 }
 
-void cimg::s_i(cv::Mat& id_img)
+void cimg::read_img(string fn)
+{
+    // if fn is not exists , then assertion error
+	if (!std::filesystem::exists(fn))
+	{
+		assertx("error, not exist fn", 0 == 1);
+	}
+
+    std::string extension;
+    if (auto pos = fn.find_last_of('.'); pos != std::string::npos)
+    {
+        extension = fn.substr(pos);
+        std::transform(extension.begin(), extension.end(), extension.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+    }
+
+    if (extension == ".gif" || extension == ".GIF")
+	{
+		read_img_gif(fn);
+        return;
+	}
+
+    img = cv::imread(fn, cv::IMREAD_UNCHANGED);
+
+	// if img is empty, then assertion error
+	if (img.empty())
+	{
+		assertx("error, img is empty", 0 == 1);
+        throw std::runtime_error("Error: Image is empty. Failed to load image from: " + fn);
+	}
+
+    
+
+}
+
+void cimg::s_i(cv::Mat &id_img)
 {
     cv::namedWindow("id_img", cv::WINDOW_AUTOSIZE);
     imshow("id_img", id_img);
     cv::waitKey(0);
 }
-
 
 void cimg::s_i()
 {
@@ -1201,11 +1755,11 @@ void cimg::s_i()
 string cimg::get_timestamp()
 {
     const int MAX = 1024;
-    char buf[MAX] = { 0 };
+    char buf[MAX] = {0};
     time_t now = time(0);
 
     tm localtime;
-    tm* local_time = &localtime;
+    tm *local_time = &localtime;
 
     if (localtime_s(&localtime, &now) == 0)
     {
@@ -1218,11 +1772,10 @@ string cimg::get_timestamp()
         int minute = local_time->tm_min;
         int second = local_time->tm_sec;
 
-        //cout << "- year:" << year << endl;
-
+        // cout << "- year:" << year << endl;
 
         auto len_ = snprintf(buf, MAX, "%04d%02d%02d_%02d%02d%02d", year, month, date, hour, minute, second);
-        //cout << len_ << endl;
+        // cout << len_ << endl;
     }
     else
     {
@@ -1231,22 +1784,15 @@ string cimg::get_timestamp()
     return string(buf);
 }
 
-// cimg_ cpp end 
+// cimg_ cpp end
 
-#endif 
+#endif
 
-
-
-
-
-
-
-void bgr_copy_r_to_dst(uchar* bgr_all, int rows, int cols, uchar* dst)
+void bgr_copy_r_to_dst(uchar *bgr_all, int rows, int cols, uchar *dst)
 {
     assert(rows % 4 == 0);
     auto width_step = rows;
     int cnt = 0;
-
 
     auto sz_img = width_step * cols * strlen("BGR");
 
@@ -1260,8 +1806,6 @@ void bgr_copy_r_to_dst(uchar* bgr_all, int rows, int cols, uchar* dst)
         }
     }
 
-
-
 #if 0
     for (auto row_ = 0; row_ < rows; row_++)
     {
@@ -1273,19 +1817,16 @@ void bgr_copy_r_to_dst(uchar* bgr_all, int rows, int cols, uchar* dst)
 
         }
     }
-#endif 
-
+#endif
 }
 
-
-
-void bin_img(cv::Mat& e_chn_img, int thr = 140)
+void bin_img(cv::Mat &e_chn_img, int thr = 140)
 {
-    auto& img = e_chn_img;
+    auto &img = e_chn_img;
 
     for (auto r = 0; r < img.rows; r++)
     {
-        uchar* tr = img.row(r).data;
+        uchar *tr = img.row(r).data;
 
         for (auto c = 0; c < img.cols; c++)
         {
@@ -1300,9 +1841,7 @@ void bin_img(cv::Mat& e_chn_img, int thr = 140)
             tr++;
         }
     }
-
 }
-
 
 namespace ns0
 {
@@ -1318,15 +1857,9 @@ namespace ns0
         cout << "- fun0" << endl;
     }
 
-
-
 };
 
-
-
 #include <direct.h>
-
-
 
 int id_fun1(string id_str)
 {
@@ -1335,9 +1868,7 @@ int id_fun1(string id_str)
     return 99;
 };
 
-
-
-void merge_bgr_to_color_batch(vector<string>& arr_fn, string& fn_save)
+void merge_bgr_to_color_batch(vector<string> &arr_fn, string &fn_save)
 {
     cimg ci;
     // -------- //
@@ -1345,8 +1876,7 @@ void merge_bgr_to_color_batch(vector<string>& arr_fn, string& fn_save)
 
     assert(arr_fn.size() == 3);
 
-
-    //ci.s_i(ci.img);
+    // ci.s_i(ci.img);
 
     int cnt = 0;
     ci.read_img(arr_fn[cnt]);
@@ -1357,76 +1887,64 @@ void merge_bgr_to_color_batch(vector<string>& arr_fn, string& fn_save)
     cv::split(color_img, v_gray_img);
 
     cnt = 0;
-    for (auto& e_img : v_gray_img)
+    for (auto &e_img : v_gray_img)
     {
         ci.read_img(arr_fn[cnt]);
         e_img = ci.img.clone();
         cnt++;
     }
 
-
-
-
     cv::merge(v_gray_img, color_img);
 
-
-    //cv::cvtColor(color_img, color_img, COLOR_BGR2RGB);
+    // cv::cvtColor(color_img, color_img, COLOR_BGR2RGB);
     ci.s_i(color_img);
 
-    //fn_save;
+    // fn_save;
 
     cv::imwrite(fn_save.c_str(), color_img);
 
-
-
-#endif 
-
-
+#endif
 }
 
-#define WIDTH_ALIGN(_w,_align) \
-       ((_w%_align!=0)?(_w/_align+1)*_align:_w)
-#define WIDTH_4(_w) WIDTH_ALIGN(_w,4)
+#define WIDTH_ALIGN(_w, _align) \
+    ((_w % _align != 0) ? (_w / _align + 1) * _align : _w)
+#define WIDTH_4(_w) WIDTH_ALIGN(_w, 4)
 
-
-void write_byte_2_bin(string fn_prefix, BYTE* buf, int rows, int cols, int chn)
+void write_byte_2_bin(string fn_prefix, BYTE *buf, int rows, int cols, int chn)
 {
 
     int byte_len = rows * WIDTH_4(cols) * chn;
 
-
     auto id_s = string(buf, buf + byte_len);
 
     string fn = fn_prefix + "" + s_("row_{}_col_{}_chn_{}.bin", rows, cols, chn);
-    ofstream of_(fn.c_str(), ios::binary); assert(of_.is_open());
+    ofstream of_(fn.c_str(), ios::binary);
+    assert(of_.is_open());
     of_ << id_s;
     of_.flush();
 
     of_.close();
 }
 
-
-void byte2cvmat(byte* src, int rows, int cols, int  chn, cv::Mat& id_mat)
+void byte2cvmat(byte *src, int rows, int cols, int chn, cv::Mat &id_mat)
 {
     assert(id_mat.rows = rows);
     assert(id_mat.cols = cols);
 
     for (auto r = 0; r < rows; r++)
     {
-        uchar* tr = id_mat.row(r).data;
+        uchar *tr = id_mat.row(r).data;
         memcpy(tr, src, cols * chn);
         src += cols * chn;
     }
-
 }
 
-float& ret0(float* arr, int index)
+float &ret0(float *arr, int index)
 {
 
-    return arr[index]; 
-
+    return arr[index];
 }
-cv::Mat get_overlap_img(const cv::Mat& img, const cv::Rect& rec)
+cv::Mat get_overlap_img(const cv::Mat &img, const cv::Rect &rec)
 {
     // ????一???碌? Mat ???螅???小????????同????始值为??色
     cv::Mat result(rec.size(), img.type(), cv::Scalar(255, 255, 255));
@@ -1450,10 +1968,12 @@ cv::Mat get_overlap_img(const cv::Mat& img, const cv::Rect& rec)
     return result;
 }
 
-void tosvg(std::string svg_filename, std::vector<float>& x, std::vector<float>& y) {
+void tosvg(std::string svg_filename, std::vector<float> &x, std::vector<float> &y)
+{
     std::ofstream svg_file(svg_filename);
 
-    if (!svg_file.is_open()) {
+    if (!svg_file.is_open())
+    {
         std::cerr << "Error: Unable to open file " << svg_filename << std::endl;
         return;
     }
@@ -1486,24 +2006,25 @@ void tosvg(std::string svg_filename, std::vector<float>& x, std::vector<float>& 
     // Write y-axis label
     svg_file << "<text x='" << (padding + 5) << "' y='" << (padding) << "' font-family='Arial' font-size='12' fill='black'>Area</text>\n";
 
-
     // Draw x-axis ticks and labels
-    for (float i = min_x; i <= max_x; i += x_range / 4) {
+    for (float i = min_x; i <= max_x; i += x_range / 4)
+    {
         float x_tick = (i - min_x) * x_scale + padding;
         svg_file << "<line x1='" << x_tick << "' y1='" << 500 - padding - 5 << "' x2='" << x_tick << "' y2='" << 500 - padding + 5 << "' stroke='black' />\n";
         svg_file << "<text x='" << x_tick << "' y='" << (500 - padding + 15) << "' font-family='Arial' font-size='10' fill='black'>" << i << "</text>\n";
     }
 
     // Draw y-axis ticks and labels
-    for (float i = min_y; i <= max_y; i += y_range / 4) {
+    for (float i = min_y; i <= max_y; i += y_range / 4)
+    {
         float y_tick = 500 - (i - min_y) * y_scale - padding;
         svg_file << "<line x1='" << padding - 5 << "' y1='" << y_tick << "' x2='" << padding + 5 << "' y2='" << y_tick << "' stroke='black' />\n";
         svg_file << "<text x='" << (padding - 30) << "' y='" << y_tick << "' font-family='Arial' font-size='10' fill='black'>" << i << "</text>\n";
     }
 
-
     // Write each data point as a circle in the SVG file
-    for (size_t i = 0; i < x.size(); ++i) {
+    for (size_t i = 0; i < x.size(); ++i)
+    {
         float x_pos = (x[i] - min_x) * x_scale + padding;
         float y_pos = 500 - (y[i] - min_y) * y_scale - padding; // Invert y values for SVG coordinates
 
@@ -1545,27 +2066,25 @@ void generateSvg(const string & fn, const std::vector<float>& x_values, const st
         svgFile.close();
     }
 }
-#endif 
-
+#endif
 
 struct obj_data
 {
-    double dnaindex; 
-    int celltype; 
+    double dnaindex;
+    int celltype;
 };
 
-
-int hist_di(vector<obj_data>& vec_obj_data)
+int hist_di(vector<obj_data> &vec_obj_data)
 {
     float DNAUpLimit = 5;
-    int m_wParameterDiscreteCount = 100; 
+    int m_wParameterDiscreteCount = 100;
     int index = 0;
     const int HIST_LEN = 206;
     const int HIST_LAST_IDX = HIST_LEN - 1;
     int HistCount[8][206];
-    for (auto & e : HistCount)
+    for (auto &e : HistCount)
     {
-        for (auto& ee : e)
+        for (auto &ee : e)
         {
             ee = 0;
         }
@@ -1577,9 +2096,9 @@ int hist_di(vector<obj_data>& vec_obj_data)
         auto celltype = it->celltype;
         auto dnaindex = it->dnaindex;
         if (dnaindex > DNAUpLimit)
-		{
-			dnaindex = DNAUpLimit;
-		}
+        {
+            dnaindex = DNAUpLimit;
+        }
 
         index = int(dnaindex / step);
 
@@ -1587,13 +2106,14 @@ int hist_di(vector<obj_data>& vec_obj_data)
         HistCount[celltype][HIST_LAST_IDX]++;
     }
 
-    int cnt_row = 0; 
-    for (auto& e : HistCount)
+    int cnt_row = 0;
+    for (auto &e : HistCount)
     {
         int cnt_col = 0;
-        for (auto& ee : e)
+        for (auto &ee : e)
         {
-            if (cnt_col == HIST_LAST_IDX) break;
+            if (cnt_col == HIST_LAST_IDX)
+                break;
             if (ee > 0)
             {
                 cout << "celltype:" << cnt_row << " dnaindex:" << cnt_col << " cnt:" << ee << endl;
@@ -1605,15 +2125,14 @@ int hist_di(vector<obj_data>& vec_obj_data)
         cout << endl;
     }
 
-
     return HIST_LEN;
 }
 
-
-void mat2hsv_v(const cv::Mat& inputImage, cv::Mat & value)
+void mat2hsv_v(const cv::Mat &inputImage, cv::Mat &value)
 {
     // ????????图???欠??? 3 通?赖?
-    if (inputImage.channels() != 3) {
+    if (inputImage.channels() != 3)
+    {
         throw std::invalid_argument("Input image must be a 3-channel (BGR) image.");
     }
 
@@ -1628,119 +2147,117 @@ void mat2hsv_v(const cv::Mat& inputImage, cv::Mat & value)
 
     value.convertTo(value, CV_8U);
     // ?? value 通??转??为 CV_8U
-   
-
 }
 
-void imadjust(const cv::Mat& input, cv::Mat& output,
-    double low_in = 0.0, double high_in = 255.0,
-    double low_out = 0.0, double high_out = 255.0) 
+void imadjust(const cv::Mat &input, cv::Mat &output,
+              double low_in = 0.0, double high_in = 255.0,
+              double low_out = 0.0, double high_out = 255.0)
 {
     // ????????图?癫⒊?始??
     output = cv::Mat(input.size(), input.type());
 
     // ???????????谋???
-    double scale = (high_out - low_out*1.0) / (high_in - low_in);
+    double scale = (high_out - low_out * 1.0) / (high_in - low_in);
 
     // ????每?????兀????械???
-    for (int y = 0; y < input.rows; y++) {
-        for (int x = 0; x < input.cols; x++) {
-           
-                // ??取??前???氐?值
-                double pixelValue = input.ptr<uchar>(y)[x];
+    for (int y = 0; y < input.rows; y++)
+    {
+        for (int x = 0; x < input.cols; x++)
+        {
 
-                // ????????值
-                if (pixelValue < low_in) {
-                    output.ptr<uchar>(y)[x] = low_out;
-                }
-                else if (pixelValue > high_in) {
-                    output.ptr<uchar>(y)[x] = high_out;
-                }
-                else {
-                    // ???????员???
-                    output.ptr<uchar>(y)[x] = cv::saturate_cast<uchar>(
-                        low_out + (pixelValue - low_in) * scale
-                    );
-                }
-            
+            // ??取??前???氐?值
+            double pixelValue = input.ptr<uchar>(y)[x];
+
+            // ????????值
+            if (pixelValue < low_in)
+            {
+                output.ptr<uchar>(y)[x] = low_out;
+            }
+            else if (pixelValue > high_in)
+            {
+                output.ptr<uchar>(y)[x] = high_out;
+            }
+            else
+            {
+                // ???????员???
+                output.ptr<uchar>(y)[x] = cv::saturate_cast<uchar>(
+                    low_out + (pixelValue - low_in) * scale);
+            }
         }
     }
 }
 
-void  rgb2y_v0(cv::Mat& inputImage, cv::Mat & value)
+void rgb2y_v0(cv::Mat &inputImage, cv::Mat &value)
 {
-   
-     mat2hsv_v(inputImage, value);
 
-    //value.convertTo(value, CV_8U);
-    // ??去 30 ??确??值?????? 0
+    mat2hsv_v(inputImage, value);
+
+    // value.convertTo(value, CV_8U);
+    //  ??去 30 ??确??值?????? 0
     value = value - 30;
     cv::threshold(value, value, 0, 0, cv::THRESH_TOZERO); // 确??值 >= 0
-
-    
 }
 
-
-void  rgb2y_v1(cv::Mat& inputImage, cv::Mat& value)
+void rgb2y_v1(cv::Mat &inputImage, cv::Mat &value)
 {
     mat2hsv_v(inputImage, value);
-    //value.convertTo(value, CV_8U);
-    // ??去 30 ??确??值?????? 0
+    // value.convertTo(value, CV_8U);
+    //  ??去 30 ??确??值?????? 0
 
-    
     // 执??????值????值????
-    value.forEach<uchar>([](uchar& pixel, const int* position) {
+    value.forEach<uchar>([](uchar &pixel, const int *position)
+                         {
         if (pixel < 50) {
             pixel = 0; // ????小?? 50 ??????值为 0
-        }
-        });
-
- 
+        } });
 }
 
-
-
-void rgb2y_v2(cv::Mat& inputImage, cv::Mat& value)
+void rgb2y_v2(cv::Mat &inputImage, cv::Mat &value)
 {
     mat2hsv_v(inputImage, value);
-   
+
     // ??去 30 ??确??值?????? 0
-    cv::Mat value_out; 
+    cv::Mat value_out;
     imadjust(value, value_out, 0, 255, 0, 255);
 
     value = value_out;
 }
 
-std::string replace_str(const std::string& filename, const string & from_str, const string & to_str)
+std::string replace_str(const std::string &filename, const string &from_str, const string &to_str)
 {
 
     std::string newFilename = filename; // ????原始?募???
 
     size_t pos = newFilename.find(from_str); // ???? "rgb_"
 
-    if (pos != std::string::npos) { // ?????业???
+    if (pos != std::string::npos)
+    { // ?????业???
 
         newFilename.replace(pos, from_str.size(), to_str); // ????"rgb_" 为 "y_"
-
     }
 
     return newFilename; // ?????薷暮????募???
-
 }
 
 #if 1
-void doCurrentBackground(const cv::Mat & _orgRGB, const cv::Mat& _orgGrey, int * _currentBackground)
-{
-    //todo 为什么??么??????值???
-    int cx_ = 2464;
-    int cy_ = 2056;
 
-    int rows = cy_; 
-    int cols = cx_; 
+void doCurrentBackground(const cv::Mat& _orgGrey, int* _currentBackground)
+{
+    // todo 为什么??么??????值???
+
+
+    cv::Mat _orgRGB; 
+
+    cv::cvtColor(_orgGrey, _orgRGB, cv::COLOR_GRAY2BGR);
+
+    int cx_ = _orgRGB.cols;
+    int cy_ = _orgRGB.rows;
+
+    int rows = cy_;
+    int cols = cx_;
 
     int64_t sumthrehold = (cx_ * cy_) / 50;
     int hist[256] = { 0 };
-
 
     int i, j, k;
     int sum = 0;
@@ -1752,7 +2269,8 @@ void doCurrentBackground(const cv::Mat & _orgRGB, const cv::Mat& _orgGrey, int *
         {
             for (j = 0; j < cols; j++)
             {
-                hist[*pData]++; pData += 3;
+                hist[*pData]++;
+                pData += 3;
             }
         }
         sum = 0;
@@ -1777,7 +2295,8 @@ void doCurrentBackground(const cv::Mat & _orgRGB, const cv::Mat& _orgGrey, int *
         {
             for (j = 0; j < cols; j++)
             {
-                hist[*pData]++; pData++;
+                hist[*pData]++;
+                pData++;
             }
         }
         sum = 0;
@@ -1791,13 +2310,77 @@ void doCurrentBackground(const cv::Mat & _orgRGB, const cv::Mat& _orgGrey, int *
         }
         _currentBackground[3 + k] = i;
     }
+}
 
+void doCurrentBackground(const cv::Mat &_orgRGB, const cv::Mat &_orgGrey, int *_currentBackground)
+{
+    // todo 为什么??么??????值???
+    int cx_ = _orgRGB.cols;
+    int cy_ = _orgRGB.rows;
+
+    int rows = cy_;
+    int cols = cx_;
+
+    int64_t sumthrehold = (cx_ * cy_) / 50;
+    int hist[256] = {0};
+
+    int i, j, k;
+    int sum = 0;
+    for (k = 0; k < 3; k++)
+    {
+        memset(hist, 0, 256 * sizeof(int));
+        uchar *pData = _orgRGB.data + k;
+        for (i = 0; i < rows; i++)
+        {
+            for (j = 0; j < cols; j++)
+            {
+                hist[*pData]++;
+                pData += 3;
+            }
+        }
+        sum = 0;
+
+        for (i = 255; i > 10; i--)
+        {
+            sum += hist[i];
+            if (sum > sumthrehold)
+            {
+                break;
+            }
+        }
+        _currentBackground[k] = i;
+    }
+
+    int channel = 1;
+    for (k = 0; k < channel; k++)
+    {
+        memset(hist, 0, 256 * sizeof(int));
+        uchar *pData = _orgGrey.data + cols * rows * k;
+        for (i = 0; i < rows; i++)
+        {
+            for (j = 0; j < cols; j++)
+            {
+                hist[*pData]++;
+                pData++;
+            }
+        }
+        sum = 0;
+        for (i = 255; i > 10; i--)
+        {
+            sum += hist[i];
+            if (sum > sumthrehold)
+            {
+                break;
+            }
+        }
+        _currentBackground[3 + k] = i;
+    }
 }
 
 void doinit_logtab(float *_LogTab, uint64_t *_Pow4)
 {
-    //float Analysis::_LogTab[256] = { 0 };
-    //uint64_t Analysis::_Pow4[128] = { 0 };
+    // float Analysis::_LogTab[256] = { 0 };
+    // uint64_t Analysis::_Pow4[128] = { 0 };
     for (int i = 4; i < 256; i++)
     {
         _LogTab[i] = log10f((float)i);
@@ -1809,7 +2392,7 @@ void doinit_logtab(float *_LogTab, uint64_t *_Pow4)
         _Pow4[i] = (unsigned long)i * i * i * i;
     }
 }
-void traverse(const cv::Mat& mat, const std::function<void(int y, int x)>& func)
+void traverse(const cv::Mat &mat, const std::function<void(int y, int x)> &func)
 {
     for (int y = 0; y < mat.rows; ++y)
     {
@@ -1820,67 +2403,60 @@ void traverse(const cv::Mat& mat, const std::function<void(int y, int x)>& func)
     }
 }
 
-uint8_t& blue(cv::Mat & _orgRGB,  int y, int x)
+uint8_t &blue(cv::Mat &_orgRGB, int y, int x)
 {
     assert(!_orgRGB.empty());
 
-    return ((uchar*)(_orgRGB.data + y * _orgRGB.step))[x * 3];
+    return ((uchar *)(_orgRGB.data + y * _orgRGB.step))[x * 3];
     //    return _orgRGB.at<cv::Vec3b>(y, x)[0];
 }
 
-uint8_t& green(cv::Mat& _orgRGB, int y, int x)
+uint8_t &green(cv::Mat &_orgRGB, int y, int x)
 {
     assert(!_orgRGB.empty());
-    return ((uchar*)(_orgRGB.data + y * _orgRGB.step))[x * 3 + 1];
+    return ((uchar *)(_orgRGB.data + y * _orgRGB.step))[x * 3 + 1];
 
     //    return _orgRGB.at<cv::Vec3b>(y, x)[1];
 }
-uint8_t& red(cv::Mat& _orgRGB, int y, int x)
+uint8_t &red(cv::Mat &_orgRGB, int y, int x)
 {
     assert(!_orgRGB.empty());
-    return ((uchar*)(_orgRGB.data + y * _orgRGB.step))[x * 3 + 2];
+    return ((uchar *)(_orgRGB.data + y * _orgRGB.step))[x * 3 + 2];
     //    return _orgRGB.at<cv::Vec3b>(y, x)[2];
 }
-uint8_t& dna_grey(cv::Mat& _orgGrey, int y, int x)
+uint8_t &dna_grey(cv::Mat &_orgGrey, int y, int x)
 {
     assert(!_orgGrey.empty());
     return _orgGrey.data[y * _orgGrey.step + x];
     //    return _orgGrey.at<uint8_t>(y, x);
 }
 
-void processCurrentBackground(cv::Mat& _orgRGB, cv::Mat& _orgGrey, float f0, float f1, float f2, float f3)
+void processCurrentBackground(cv::Mat &_orgRGB, cv::Mat &_orgGrey, float f0, float f1, float f2, float f3)
 {
-    float _LogTab[256] = { 0 };
-    uint64_t _Pow4[128] = { 0 };
+    float _LogTab[256] = {0};
+    uint64_t _Pow4[128] = {0};
     int _currentBackground[6];
 
+    static float UnMixIndex[11][4] = {{-0.02f, -0.06f, -0.348f, 1.33f},
+                                      {-0.01f, -0.11f, -0.47f, 1.39f},
+                                      {1.1f, -0.31f, -0.12f, 0.06f},
+                                      {-0.43f, 0.05f, -0.28f, 1.20f},
+                                      {1.1f, -0.28f, -0.02f, -0.3f},
+                                      {-0.53, 0.04f, -0.34, 1.5f},
+                                      {1.1f, 0.0f, -0.62f, 0.0f},
+                                      {-0.27f, 0.00f, 1.20f, 0.0f},
+                                      {1.18f, -0.30f, -0.280f, 0.0f},
+                                      {-0.28f, 0.06f, 1.120f, 0.0f},
+                                      {0.0f, -0.09f, 0.0f, 1.0f}};
 
-    static float UnMixIndex[11][4] = { {-0.02f, -0.06f, -0.348f, 1.33f},
-                             {-0.01f,-0.11f,-0.47f,1.39f},
-                             {1.1f,-0.31f,-0.12f,0.06f},
-                             {-0.43f,0.05f,-0.28f,1.20f},
-                             {1.1f,-0.28f,-0.02f,-0.3f},
-                             {-0.53,0.04f,-0.34,1.5f},
-                             {1.1f,0.0f,-0.62f,0.0f},
-                             {-0.27f, 0.00f,1.20f,0.0f},
-                             {1.18f,-0.30f,-0.280f,0.0f},
-                             {-0.28f, 0.06f,1.120f,0.0f},
-                             {0.0f, -0.09f, 0.0f, 1.0f}
-    };
+    // auto& f0 = UnMixIndex[1][0];
+    // auto& f1 = UnMixIndex[1][1];
+    // auto& f2 = UnMixIndex[1][2];
+    // auto& f3 = UnMixIndex[1][3];
 
-
-    
-
-    //auto& f0 = UnMixIndex[1][0];
-	//auto& f1 = UnMixIndex[1][1];
-	//auto& f2 = UnMixIndex[1][2];
-	//auto& f3 = UnMixIndex[1][3];
-
-
-	doinit_logtab(_LogTab, _Pow4);
+    doinit_logtab(_LogTab, _Pow4);
 
     doCurrentBackground(_orgRGB, _orgGrey, _currentBackground);
-
 
     double BackOD[4];
     for (int i = 0; i < 4; i++)
@@ -1890,7 +2466,8 @@ void processCurrentBackground(cv::Mat& _orgRGB, cv::Mat& _orgGrey, float f0, flo
 
     {
         //?然?,????,????,??木??
-        traverse(_orgRGB, [&](int y, int x) {
+        traverse(_orgRGB, [&](int y, int x)
+                 {
             double ODb = BackOD[0] - _LogTab[blue(_orgRGB,y, x)];
             double ODg = BackOD[1] - _LogTab[green(_orgRGB, y, x)];
             double ODr = BackOD[2] - _LogTab[red(_orgRGB, y, x)];
@@ -1904,34 +2481,29 @@ void processCurrentBackground(cv::Mat& _orgRGB, cv::Mat& _orgGrey, float f0, flo
                 Grey = _currentBackground[3];
             }
 
-            dna_grey(_orgGrey, y, x) = Grey;
-            });
-
-      
+            dna_grey(_orgGrey, y, x) = Grey; });
     }
-
-
-
-
 }
-#endif 
+#endif
 
 #if 1
 
-std::string filename2y(const std::string& filename)
+std::string filename2y(const std::string &filename)
 {
-    std::string newFilename = filename; // ????原始?募???
+    std::string newFilename = filename;    // ????原始?募???
     size_t pos = newFilename.find("rgb_"); // ???? "rgb_"
-    if (pos != std::string::npos) { // ?????业???
+    if (pos != std::string::npos)
+    {                                      // ?????业???
         newFilename.replace(pos, 4, "y_"); // ????"rgb_" 为 "y_"
     }
     return newFilename; // ?????薷暮????募???
 }
 
-void Mat2Hsv(const cv::Mat& inputImage, cv::Mat& value)
+void Mat2Hsv(const cv::Mat &inputImage, cv::Mat &value)
 {
     // ????????图???欠??? 3 通?赖?
-    if (inputImage.channels() != 3) {
+    if (inputImage.channels() != 3)
+    {
         throw std::invalid_argument("Input image must be a 3-channel (BGR) image.");
     }
 
@@ -1946,13 +2518,11 @@ void Mat2Hsv(const cv::Mat& inputImage, cv::Mat& value)
 
     value.convertTo(value, CV_8U);
     // ?? value 通??转??为 CV_8U
-
-
 }
 
-void MatlabImadjust(const cv::Mat& input, cv::Mat& output,
-    double low_in = 0.0, double high_in = 255.0,
-    double low_out = 0.0, double high_out = 255.0)
+void MatlabImadjust(const cv::Mat &input, cv::Mat &output,
+                    double low_in = 0.0, double high_in = 255.0,
+                    double low_out = 0.0, double high_out = 255.0)
 {
     // ????????图?癫⒊?始??
     output = cv::Mat(input.size(), input.type());
@@ -1961,64 +2531,59 @@ void MatlabImadjust(const cv::Mat& input, cv::Mat& output,
     double scale = (high_out - low_out) / (high_in - low_in);
 
     // ????每?????兀????械???
-    for (int y = 0; y < input.rows; y++) {
-        for (int x = 0; x < input.cols; x++) {
+    for (int y = 0; y < input.rows; y++)
+    {
+        for (int x = 0; x < input.cols; x++)
+        {
 
             // ??取??前???氐?值
             double pixelValue = input.ptr<uchar>(y)[x];
 
             // ????????值
-            if (pixelValue < low_in) {
+            if (pixelValue < low_in)
+            {
                 output.ptr<uchar>(y)[x] = low_out;
             }
-            else if (pixelValue > high_in) {
+            else if (pixelValue > high_in)
+            {
                 output.ptr<uchar>(y)[x] = high_out;
             }
-            else {
+            else
+            {
                 // ???????员???
                 output.ptr<uchar>(y)[x] = cv::saturate_cast<uchar>(
-                    low_out + (pixelValue - low_in) * scale
-                );
+                    low_out + (pixelValue - low_in) * scale);
             }
-
         }
     }
 }
 
-void  Rgb2yV0(cv::Mat& inputImage, cv::Mat& value)
+void Rgb2yV0(cv::Mat &inputImage, cv::Mat &value)
 {
 
     Mat2Hsv(inputImage, value);
 
-    //value.convertTo(value, CV_8U);
-    // ??去 30 ??确??值?????? 0
+    // value.convertTo(value, CV_8U);
+    //  ??去 30 ??确??值?????? 0
     value = value - 30;
     cv::threshold(value, value, 0, 0, cv::THRESH_TOZERO); // 确??值 >= 0
-
-
 }
 
-
-void  Rgb2yV1(cv::Mat& inputImage, cv::Mat& value)
+void Rgb2yV1(cv::Mat &inputImage, cv::Mat &value)
 {
     Mat2Hsv(inputImage, value);
-    //value.convertTo(value, CV_8U);
-    // ??去 30 ??确??值?????? 0
-
+    // value.convertTo(value, CV_8U);
+    //  ??去 30 ??确??值?????? 0
 
     // 执??????值????值????
-    value.forEach<uchar>([](uchar& pixel, const int* position) {
+    value.forEach<uchar>([](uchar &pixel, const int *position)
+                         {
         if (pixel < 50) {
             pixel = 0; // ????小?? 50 ??????值为 0
-        }
-        });
-
-
+        } });
 }
 
-
-
-void Rgb2yV2(cv::Mat& inputImage, cv::Mat& value)
+void Rgb2yV2(cv::Mat &inputImage, cv::Mat &value)
 {
     Mat2Hsv(inputImage, value);
 
@@ -2029,53 +2594,55 @@ void Rgb2yV2(cv::Mat& inputImage, cv::Mat& value)
     value = value_out;
 }
 
-
-#endif 
-
-
+#endif
 
 #if 1
 // ?氐??????????诨????谋???
-void on_trackbar(int, void*) {
+void on_trackbar(int, void *)
+{
     // ???????????????眨???为???腔?????循???写???图??????
 }
-void on_trackbar_f0(int, void*) {
-    // ???????????????眨???为???腔?????循???写???图??????
-}
-
-
-void on_trackbar_f1(int, void*) {
+void on_trackbar_f0(int, void *)
+{
     // ???????????????眨???为???腔?????循???写???图??????
 }
 
-void on_trackbar_f2(int, void*) {
+void on_trackbar_f1(int, void *)
+{
     // ???????????????眨???为???腔?????循???写???图??????
 }
 
-void on_trackbar_f3(int, void*) {
+void on_trackbar_f2(int, void *)
+{
     // ???????????????眨???为???腔?????循???写???图??????
 }
 
-float factor_i_to_f(int i0, int i_l=0, int i_h=100, float f_l=-2, float f_h=2)
+void on_trackbar_f3(int, void *)
+{
+    // ???????????????眨???为???腔?????循???写???图??????
+}
+
+float factor_i_to_f(int i0, int i_l = 0, int i_h = 100, float f_l = -2, float f_h = 2)
 {
     return ((float)i0 - i_l) / (i_h - i_l) * (f_h - f_l) + f_l;
 }
 
-
 int factor_f_to_i(float f0, float f_l = -2, float f_h = 2, int i_l = 0, int i_h = 100)
 {
-	return (int)((f0 - f_l) / (f_h - f_l) * (i_h - i_l) + i_l);
+    return (int)((f0 - f_l) / (f_h - f_l) * (i_h - i_l) + i_l);
 }
 
-bool ifMaskIsFilled(const cv::Mat& overlay_rect)
+bool ifMaskIsFilled(const cv::Mat &overlay_rect)
 {
     bool retcode = true;
     int cen_r = (overlay_rect.rows) / 2;
     int cen_c = (overlay_rect.cols) / 2;
     int r = 0;
     int c = 0;
-    int r0 = 0; int r1 = 0;
-    int c0 = 0; int c1 = 0;
+    int r0 = 0;
+    int r1 = 0;
+    int c0 = 0;
+    int c1 = 0;
 
     if (overlay_rect.ptr(cen_r)[cen_c] == 0)
     {
@@ -2102,22 +2669,18 @@ bool ifMaskIsFilled(const cv::Mat& overlay_rect)
                     c1 = c;
                     break;
                 }
-
             }
 
             if (c1 - c0 != 1)
             {
                 c0 = 0;
                 c1 = 0;
-
             }
             else
             {
                 break;
             }
-
         }
-
 
         for (int k = 0; k < 2; k++)
         {
@@ -2136,7 +2699,6 @@ bool ifMaskIsFilled(const cv::Mat& overlay_rect)
                     r1 = r;
                     break;
                 }
-
             }
 
             if (r1 - r0 != 1)
@@ -2149,10 +2711,7 @@ bool ifMaskIsFilled(const cv::Mat& overlay_rect)
                 break;
             }
         }
-
     }
-
-
 
     if (c1 - c0 == 1 || r1 - r0 == 1)
     {
@@ -2160,10 +2719,9 @@ bool ifMaskIsFilled(const cv::Mat& overlay_rect)
     }
 
     return retcode;
-
 }
 
-void pk_algo(const cv::Mat& _rgb)
+void pk_algo(const cv::Mat &_rgb)
 {
 
     cv::Mat hsv;
@@ -2202,14 +2760,15 @@ void pk_algo(const cv::Mat& _rgb)
 #if 1
         inRange(hsv_roi, Scalar(0, 150, 70), Scalar(10, 255, 255), mask1);
         inRange(hsv_roi, Scalar(180, 150, 70), Scalar(180, 255, 255), mask2);
-#endif 
+#endif
 
         mask_roi = mask1 | mask2;
 
         int cropSize = 256;
 
         int count = countNonZero(mask_roi);
-        if (count > pixelRedThreshold) {
+        if (count > pixelRedThreshold)
+        {
             Moments m = moments(contours[i]);
             Point centroid(m.m10 / m.m00, m.m01 / m.m00);
             int x = centroid.x - cropSize / 2;
@@ -2232,49 +2791,43 @@ void pk_algo(const cv::Mat& _rgb)
             // resultMatMap.insert(QString("%1_%2_%3").arg(centroid.x + globalX).arg(centroid.y + globalY).arg(value), crop);
         }
     }
-
-
 }
 
-#endif 
-
+#endif
 
 #if 1
 
 // scanapp_ hpp start
-class scanapp {
+class scanapp
+{
 public:
     scanapp();
-
-
 };
 // scanapp_ hpp end
 
 // scandlg_ hpp start
-class scandlg {
+class scandlg
+{
 public:
     scandlg();
-
-
 };
 // scandlg_ hpp end
 
-
 // stage_ hpp start
-class stage {
+class stage
+{
 public:
     stage();
 
-    stage * get_stage();
-    stage* id_stage;
+    stage *get_stage();
+    stage *id_stage;
     void init();
-
-
 };
 // stage_ hpp end
 
 // measure_ hpp start
-class measure {
+class measure
+{
 
 public:
     measure();
@@ -2286,117 +2839,115 @@ class dbmgr
 {
 public:
     dbmgr();
-
 };
 // dbmgr_ hpp end
 
-#endif 
+#endif
 
 #if 1
 
-struct Peak {
+struct Peak
+{
     int index;
     double value;
 
-    // 用于比较两个波峰，以便可以按值排序  
-    bool operator<(const Peak& other) const {
-        return value < other.value; // 从小到大排序，用于找出最大波峰  
+    // 用于比较两个波峰，以便可以按值排序
+    bool operator<(const Peak &other) const
+    {
+        return value < other.value; // 从小到大排序，用于找出最大波峰
     }
 };
 
-std::vector<Peak> find_top3peak(const std::vector<double>& data, int min_distance, int margin) {
-    std::vector<Peak> peaks; // 存储波峰的结构体  
+std::vector<Peak> find_top3peak(const std::vector<double> &data, int min_distance, int margin)
+{
+    std::vector<Peak> peaks; // 存储波峰的结构体
     int n = data.size();
 
-    for (int i = margin; i < n - margin; ++i) {
-        // 检查当前点是否是波峰  
+    for (int i = margin; i < n - margin; ++i)
+    {
+        // 检查当前点是否是波峰
         bool is_peak = true;
 
-        // 检查左右 10 个元素  
-        for (int j = 1; j <= margin; ++j) {
-            if (data[i] <= data[i - j] || data[i] <= data[i + j]) {
+        // 检查左右 10 个元素
+        for (int j = 1; j <= margin; ++j)
+        {
+            if (data[i] <= data[i - j] || data[i] <= data[i + j])
+            {
                 is_peak = false;
                 break;
             }
         }
 
-        // 如果是波峰，检测与已有波峰的距离  
-        if (is_peak) {
-            if (peaks.empty() || i - peaks.back().index >= min_distance) {
-                peaks.push_back({ i, data[i] }); // 存储波峰的索引和值  
+        // 如果是波峰，检测与已有波峰的距离
+        if (is_peak)
+        {
+            if (peaks.empty() || i - peaks.back().index >= min_distance)
+            {
+                peaks.push_back({i, data[i]}); // 存储波峰的索引和值
             }
         }
     }
 
-    // 按波峰值排序，找到最大的三个波峰  
-    std::sort(peaks.begin(), peaks.end()); // 从小到大排序  
+    // 按波峰值排序，找到最大的三个波峰
+    std::sort(peaks.begin(), peaks.end()); // 从小到大排序
     std::vector<Peak> top_three_peaks;
 
-    // 取出最大的三个波峰  
+    // 取出最大的三个波峰
     int count = 0;
-    for (int i = peaks.size() - 1; i >= 0 && count < 3; --i) {
+    for (int i = peaks.size() - 1; i >= 0 && count < 3; --i)
+    {
         top_three_peaks.push_back(peaks[i]);
         ++count;
     }
 
-    // 反转以保持索引顺序  
+    // 反转以保持索引顺序
     // std::reverse(top_three_peaks.begin(), top_three_peaks.end());
     return top_three_peaks;
 }
 
-
-
-pair<int, int>  diag_diffsum(const cv::Mat& img, int step)
+pair<int, int> diag_diffsum(const cv::Mat &img, int step)
 {
 
     int cnt = 0;
     // int step = 4;
-    int rows = img.rows; 
-    int cols = img.cols; 
+    int rows = img.rows;
+    int cols = img.cols;
 
     int sr = 0;
-    // assert(rows/2 > center_edge); 
+    // assert(rows/2 > center_edge);
     int center_edge = img.rows - step - 1;
-    // int sr = rows/2; 
-    assert(sr + center_edge < img.rows); 
+    // int sr = rows/2;
+    assert(sr + center_edge < img.rows);
 
-    int sc = rows/2;
+    int sc = rows / 2;
 
-    const uchar* gray_r0 = (img.data);
-    
+    const uchar *gray_r0 = (img.data);
+
     int widthstep = cols * 1;
-    uchar* gray = (uchar*)gray_r0;
-
+    uchar *gray = (uchar *)gray_r0;
 
     vector<int> vdiag;
-    vdiag.resize(center_edge/step); 
+    vdiag.resize(center_edge / step);
     vector<int> vdiag_a;
-    vdiag_a.resize(center_edge/step);
-
-
-
-    
-
+    vdiag_a.resize(center_edge / step);
 
     int sum = 0;
     int sum_a = 0;
     cnt = 0;
 
-    int possum = cnt + sr + cnt + sr + center_edge; 
+    int possum = cnt + sr + cnt + sr + center_edge;
 
-    while (cnt < center_edge/step)
+    while (cnt < center_edge / step)
     {
-        auto* gray = gray_r0 + (cnt+sr) * widthstep + (cnt+sr);
-        auto* gray_a = gray_r0 + (cnt + sr) * widthstep + (possum-cnt - sr);
-        vdiag[cnt]= *gray;
+        auto *gray = gray_r0 + (cnt + sr) * widthstep + (cnt + sr);
+        auto *gray_a = gray_r0 + (cnt + sr) * widthstep + (possum - cnt - sr);
+        vdiag[cnt] = *gray;
         vdiag_a[cnt] = *gray_a;
-        
 
         sum += (*gray);
         sum_a += (*gray_a);
         cnt++;
     }
-
 
     float mean = sum * 1.0f / vdiag.size();
     float mean_a = sum_a * 1.0f / vdiag_a.size();
@@ -2404,13 +2955,13 @@ pair<int, int>  diag_diffsum(const cv::Mat& img, int step)
     int stdv = 0;
     for (auto e : vdiag)
     {
-        stdv += (e - mean) * (e - mean); // Summing squared differences  
+        stdv += (e - mean) * (e - mean); // Summing squared differences
     }
 
     int stdv_a = 0;
     for (auto e : vdiag_a)
     {
-        stdv_a += (e - mean) * (e - mean); // Summing squared differences  
+        stdv_a += (e - mean) * (e - mean); // Summing squared differences
     }
     stdv = sqrt(stdv / vdiag.size());
     stdv_a = sqrt(stdv_a / vdiag_a.size());
@@ -2420,8 +2971,8 @@ pair<int, int>  diag_diffsum(const cv::Mat& img, int step)
     int sumdiff = 0;
     for (int i = 0; i < vdiag.size() - 1; i++)
     {
-        auto& prev = vdiag[i];
-        auto& next = vdiag[i + 1];
+        auto &prev = vdiag[i];
+        auto &next = vdiag[i + 1];
 
         auto d = abs(next - prev);
         sumdiff += d;
@@ -2429,32 +2980,25 @@ pair<int, int>  diag_diffsum(const cv::Mat& img, int step)
     int sumdiff_a = 0;
     for (int i = 0; i < vdiag_a.size() - 1; i++)
     {
-        auto& prev = vdiag_a[i];
-        auto& next = vdiag_a[i + 1];
+        auto &prev = vdiag_a[i];
+        auto &next = vdiag_a[i + 1];
 
         auto d = abs(next - prev);
         sumdiff_a += d;
     }
 
-
-
-
-
-    //ci.s_i();
+    // ci.s_i();
 
     // cout << stdv << "," << stdv_a << "   ,  " << sumdiff << "," << sumdiff_a << endl;
-
 
     // cout << "sum:"<<stdv + stdv_a << ", " << sumdiff + sumdiff_a << endl;
 
     // cout <<"min:"<< min(stdv, stdv_a) << ", " << min(sumdiff, sumdiff_a) << endl;
 
-    return { stdv + stdv_a , sumdiff + sumdiff_a };
+    return {stdv + stdv_a, sumdiff + sumdiff_a};
 }
 
-
-
-void fmts(string& s)
+void fmts(string &s)
 {
     string sa;
     for (auto ec : s)
@@ -2468,7 +3012,7 @@ void fmts(string& s)
     s = sa;
 }
 
-void deal_eline(cimg& ci, string& es, vector<string>& vp, vector<string>& vn)
+void deal_eline(cimg &ci, string &es, vector<string> &vp, vector<string> &vn)
 {
 
     auto fall = ci.split_str_2_vec(es, '[');
@@ -2476,11 +3020,8 @@ void deal_eline(cimg& ci, string& es, vector<string>& vp, vector<string>& vn)
     auto p = fall[1];
     auto n = fall[2];
 
-
-
     fmts(p);
     fmts(n);
-
 
     vp = ci.split_str_2_vec(p, ',');
     vn = ci.split_str_2_vec(n, ',');
@@ -2489,191 +3030,6075 @@ void deal_eline(cimg& ci, string& es, vector<string>& vp, vector<string>& vn)
 
     auto sz = min(vp.size(), vn.size());
 
-
-
     vp = vector<string>(vp.begin(), vp.begin() + sz);
     vn = vector<string>(vn.begin(), vn.begin() + sz);
     assert(vp.size() == vn.size());
 }
 
-// 函数：可视化一维向量并标注最大值  
-void visualizeVector(const vector<int>& data, const string& windowName) {
-    if (data.empty()) {
-        cout << "Data vector is empty!" << endl;
-        return;
-    }
+#if 1
+void from_dat_to_v_p(string title, int max_idx, int step)
+{
 
-    // 计算数据的最大值和最小值  
-    double maxValue = *max_element(data.begin(), data.end());
-    double minValue = *min_element(data.begin(), data.end());
+    string fn_d = "d:/jd/t/t0";
+    cimg ci;
+    int rows = 2056;
+    int cols = 2464;
 
-    int width = 800;
-    int height = 400;
-    Mat image(height, width, CV_8UC3, Scalar(255, 255, 255)); // 白色背景  
+    vector<int> v_sum_diff;
 
-    // 绘制坐标轴  
-    line(image, Point(50, height - 50), Point(50, 50), Scalar(0, 0, 0), 2); // y 轴  
-    line(image, Point(50, height - 50), Point(width - 50, height - 50), Scalar(0, 0, 0), 2); // x 轴  
+    for (int i = 0; i < max_idx; i++)
+    {
+        string fn_dat = s_("zidx_{}_{}.dat", title, i);
+        string fn_dat_full = fn_d + "/" + fn_dat;
 
-    // 绘制 y 轴刻度  
-    for (int i = 0; i <= 10; i++) {
-        int y = height - 50 - (i * (height - 100) / 10);
-        line(image, Point(45, y), Point(55, y), Scalar(0, 0, 0), 1);
-        putText(image, to_string(static_cast<int>(i * (maxValue / 10))), Point(10, y + 5), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 0), 1);
-    }
+        ci.read_bin_to_mat(fn_dat_full, rows, cols, 1);
 
-    // 绘制 x 轴刻度  
-    int dataSize = static_cast<int>(data.size());
-    for (int i = 0; i < dataSize; i++) {
-        int x = 50 + (i * (width - 100) / (dataSize - 1));
-        line(image, Point(x, height - 45), Point(x, height - 55), Scalar(0, 0, 0), 1);
-        putText(image, to_string(i), Point(x - 10, height - 30), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 0), 1);
-    }
+        // ci.s_i();
 
-    // 声明 prevX 和 prevY  
-    double prevX = 50 + (0 * (width - 100) / (dataSize - 1)); // 初始化第一个点位置  
-    double prevY = height - 50 - (static_cast<double>(data[0]) / maxValue * (height - 100)); // 初始化第一个点位置  
+        int sz = min(rows, cols);
 
-    // 根据最大值进行归一化并绘制数据  
-    for (int i = 0; i < dataSize; i++) {
-        double normalizedValue = static_cast<double>(data[i]) / maxValue; // 归一化到0到1之间  
-        double x = 50 + (i * (width - 100) / (dataSize - 1));
-        double y = height - 50 - (normalizedValue * (height - 100));
+        vector<int> vp;
+        vector<int> vn;
 
-        // 绘制点  
-        circle(image, Point(x, y), 5, Scalar(0, 0, 255), -1); // 用红色圆圈标记数据点  
+        for (int i = 0; i < sz; i++)
+        {
+            auto &e_pv = ci.img.ptr<uchar>(i)[i];
+            auto &e_nv = ci.img.ptr<uchar>(i)[sz - i - 1];
 
-        // 如果是第一个点，记录它的x和y  
-        if (i > 0) {
-            // 绘制线段  
-            line(image, Point(prevX, prevY), Point(x, y), Scalar(0, 0, 255), 2);
+            if (i % step == 0)
+            {
+                vp.push_back(e_pv);
+                vn.push_back(e_nv);
+            }
         }
 
-        // 更新上一个点的信息  
-        prevX = x;
-        prevY = y;
+        std::vector<int> diff_p(vp.size());
+        std::adjacent_difference(vp.begin(), vp.end(), diff_p.begin());
+
+        std::vector<int> diff_n(vn.size());
+        std::adjacent_difference(vn.begin(), vn.end(), diff_n.begin());
+
+        vector<int> diff_all = ci.combine_vec(diff_p, diff_n);
+
+        std::transform(diff_all.begin(), diff_all.end(), diff_all.begin(),
+                       [](int ev)
+                       { return std::abs(ev); });
+
+        auto esum = std::accumulate(diff_all.begin(), diff_all.end(), 0);
+
+        v_sum_diff.push_back(esum);
     }
 
-    // 用箭头标注最大值及其位置  
-    int maxIndex = distance(data.begin(), max_element(data.begin(), data.end()));
-    int maxX = 50 + (maxIndex * (width - 100) / (dataSize - 1));
-    int maxY = height - 50 - (maxValue / maxValue * (height - 100)); // maxY 永远是顶部  
+    cout_("{}\n", v_sum_diff);
 
-    putText(image, "Max: " + to_string(static_cast<int>(maxValue)) + " at index " + to_string(maxIndex),
-        Point(maxX + 10, maxY - 10), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0, 0, 0), 1);
+    cout_("{},{}\n", v_sum_diff[206], v_sum_diff[238]);
 
-    // 用箭头标注最小值及其位置  
-    int minIndex = distance(data.begin(), min_element(data.begin(), data.end()));
-    int minX = 50 + (minIndex * (width - 100) / (dataSize - 1));
-    int minY = height - 50 - (minValue / maxValue * (height - 100)); // 最小值的 y 坐标  
+    ci.img = ci.P(v_sum_diff, 0);
+    ci.puttext(title);
 
-    putText(image, "Min: " + to_string(static_cast<int>(minValue)) + " at index " + to_string(minIndex),
-        Point(minX + 10, minY + 15), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0, 0, 0), 1);
-
-    // 显示图像  
-    imshow(windowName, image);
-    waitKey(0);
+    ci.s_i();
 }
+
+#endif
+
+class A
+{
+
+public:
+    A();
+    A(int x_);
+
+    ~A();
+
+protected:
+    int x;
+};
+
+A::A()
+{
+    x = -9;
+}
+A::A(int x_)
+{
+    // this->A();
+
+    cout << x << endl;
+    x = x_;
+    cout << x << endl;
+}
+A::~A()
+{
+}
+
+char *ret_test()
+{
+    vector<uchar> vu{'a', 'b', 'c', 'd'};
+    return (char *)(vu.data());
+    // char* s = new char[4];
+    // memcpy(s, vu.data(), 4);
+
+    // for (uint i = 0; i < 4; i++)
+    //{
+    //     cout << s[i] << endl;
+    // }
+
+    // return (s);
+}
+
+#if 1
+void from_dat_to_v_p_png(string fn_d, string title, int max_idx, int step)
+{
+    // .\x64\Debug\t0.exe   d:/jd/doc/sw_monograph a 399 16
+    // fn_d = "d:/jd/t/t0";
+    cimg ci;
+    int rows = 2056;
+    int cols = 2464;
+
+    vector<int> v_sum_diff;
+
+    auto t0 = GetTickCount64();
+
+    int sum_time_load = 0;
+    for (int i = 0; i < max_idx; i++)
+    {
+
+        string fn_dat_full = s_("{}/zidx_{}_{}.dat.png", fn_d, title, i);
+        // string fn_dat_full = fn_d + "/" + fn_dat;
+
+        // ci.read_bin_to_mat(fn_dat_full, rows, cols, 1);
+        auto t00 = GetTickCount64();
+
+        ci.read_img(fn_dat_full);
+
+        auto d00 = GetTickCount64() - t00;
+        sum_time_load += d00;
+
+        if (i % 20 == 0 && i != 0)
+        {
+            auto fn_t = ci.replace_str(fn_dat_full, fn_d + "/", "");
+            cout << " | process:" << fn_t << endl;
+            // cout << "process:" << fn_dat_full << endl;
+        }
+        else
+        {
+            if (i == 0)
+            {
+            }
+            else
+            {
+                printf("%3d,", i);
+            }
+        }
+        // ci.s_i();
+
+        int sz = min(rows, cols);
+
+        vector<int> vp;
+        vector<int> vn;
+
+        for (int i = 0; i < sz; i++)
+        {
+            auto &e_pv = ci.img.ptr<uchar>(i)[i];
+            auto &e_nv = ci.img.ptr<uchar>(i)[sz - i - 1];
+
+            if (i % step == 0)
+            {
+                vp.push_back(e_pv);
+                vn.push_back(e_nv);
+            }
+        }
+
+        std::vector<int> diff_p(vp.size());
+        std::adjacent_difference(vp.begin(), vp.end(), diff_p.begin());
+
+        std::vector<int> diff_n(vn.size());
+        std::adjacent_difference(vn.begin(), vn.end(), diff_n.begin());
+
+        vector<int> diff_all = ci.combine_vec(diff_p, diff_n);
+
+        std::transform(diff_all.begin(), diff_all.end(), diff_all.begin(),
+                       [](int ev)
+                       { return std::abs(ev); });
+
+        auto esum = std::accumulate(diff_all.begin(), diff_all.end(), 0);
+
+        v_sum_diff.push_back(esum);
+    }
+
+    auto d_ts = GetTickCount64() - t0;
+
+    // cout_("{}\n", v_sum_diff);
+
+    // cout_("{},{}\n", v_sum_diff[206], v_sum_diff[238]);
+
+    ci.img = ci.P(v_sum_diff, 0);
+
+    ci.puttext(title);
+
+    vector<cv::Mat> vimg;
+
+    float target_rows = 512.0f;
+
+    float f = target_rows / ci.img.rows;
+    ci.resize(f);
+
+    vimg.push_back(ci.img);
+
+    // get max and max index for v_sum_diff
+    auto maxIndex = std::distance(v_sum_diff.begin(), std::max_element(v_sum_diff.begin(), v_sum_diff.end()));
+
+    string fn_dat_full = s_("{}/zidx_{}_{}.dat.png", fn_d, title, maxIndex);
+    ci.read_img(fn_dat_full);
+    f = target_rows / ci.img.rows;
+    ci.resize(f);
+    cv::cvtColor(ci.img, ci.img, cv::COLOR_GRAY2BGR);
+
+    fn_dat_full = ci.replace_str(fn_dat_full, fn_d, "");
+    ci.puttext(fn_dat_full);
+
+    vimg.push_back(ci.img);
+
+    ci.img = ci.hconcat(vimg, 0);
+
+    cout << endl
+         << "\n\ttime cost for find focus(not include load images):" << d_ts - sum_time_load << " ms" << endl;
+
+    ci.s_i();
+}
+
+void from_dat_to_v_p_png_slow(string fn_d, string title, int max_idx, int step)
+{
+    // .\x64\Debug\t0.exe   d:/jd/doc/sw_monograph a 399 16
+    // fn_d = "d:/jd/t/t0";
+    cimg ci;
+    int rows = 2056;
+    int cols = 2464;
+
+    vector<int> v_sum_diff;
+
+    auto t0 = GetTickCount64();
+
+    int sum_time_load = 0;
+    for (int i = 0; i < max_idx; i++)
+    {
+
+        string fn_dat_full = s_("{}/zidx_{}_{}.dat.png", fn_d, title, i);
+        // string fn_dat_full = fn_d + "/" + fn_dat;
+
+        // ci.read_bin_to_mat(fn_dat_full, rows, cols, 1);
+        auto t00 = GetTickCount64();
+
+        ci.read_img(fn_dat_full);
+
+        auto d00 = GetTickCount64() - t00;
+        sum_time_load += d00;
+
+        if (i % 20 == 0 && i != 0)
+        {
+            auto fn_t = ci.replace_str(fn_dat_full, fn_d + "/", "");
+            cout << " | process:" << fn_t << endl;
+            // cout << "process:" << fn_dat_full << endl;
+        }
+        else
+        {
+            if (i == 0)
+            {
+            }
+            else
+            {
+                printf("%3d,", i);
+            }
+        }
+        // ci.s_i();
+
+        vector<int> vpn;
+        for (int r = 0; r < ci.img.rows; r++)
+        {
+            for (int c = 0; c < ci.img.cols; c++)
+            {
+                auto &e = ci.img.ptr<uchar>(r)[c];
+
+                if (r % step == 0 && c % step == 0)
+                {
+                    vpn.push_back(e);
+                }
+            }
+        }
+
+        std::vector<int> diff_pn(vpn.size());
+        std::adjacent_difference(vpn.begin(), vpn.end(), diff_pn.begin());
 
 #if 0
-void visualizeVector(const vector<int>& data, const string& windowName) {
-    if (data.empty()) {
-        cout << "Data vector is empty!" << endl;
+        std::vector<int> diff_p(vp.size());
+        std::adjacent_difference(vp.begin(), vp.end(), diff_p.begin());
+
+        std::vector<int> diff_n(vn.size());
+        std::adjacent_difference(vn.begin(), vn.end(), diff_n.begin());
+
+        vector<int> diff_all = ci.combine_vec(diff_p, diff_n);
+#endif
+
+        vector<int> diff_all = diff_pn;
+
+        std::transform(diff_all.begin(), diff_all.end(), diff_all.begin(),
+                       [](int ev)
+                       { return std::abs(ev); });
+
+        auto esum = std::accumulate(diff_all.begin(), diff_all.end(), 0);
+
+        v_sum_diff.push_back(esum);
+    }
+
+    auto d_ts = GetTickCount64() - t0;
+
+    // cout_("{}\n", v_sum_diff);
+
+    // cout_("{},{}\n", v_sum_diff[206], v_sum_diff[238]);
+
+    ci.img = ci.P(v_sum_diff, 0);
+
+    ci.puttext(title);
+
+    vector<cv::Mat> vimg;
+
+    float target_rows = 512.0f;
+
+    float f = target_rows / ci.img.rows;
+    ci.resize(f);
+
+    vimg.push_back(ci.img);
+
+    // get max and max index for v_sum_diff
+    auto maxIndex = std::distance(v_sum_diff.begin(), std::max_element(v_sum_diff.begin(), v_sum_diff.end()));
+
+    string fn_dat_full = s_("{}/zidx_{}_{}.dat.png", fn_d, title, maxIndex);
+    ci.read_img(fn_dat_full);
+    f = target_rows / ci.img.rows;
+    ci.resize(f);
+    cv::cvtColor(ci.img, ci.img, cv::COLOR_GRAY2BGR);
+
+    fn_dat_full = ci.replace_str(fn_dat_full, fn_d, "");
+    ci.puttext(fn_dat_full);
+
+    vimg.push_back(ci.img);
+
+    ci.img = ci.hconcat(vimg, 0);
+
+    cout << endl
+         << "\n\ttime cost for find focus(not include load images):" << d_ts - sum_time_load << " ms" << endl;
+
+    ci.s_i();
+}
+#endif
+
+#endif
+
+#if 0
+
+std::pair<cv::Mat, std::vector<std::vector<cv::Point>>> genCervicalOverlayWithGradient(cv::Mat& rgb)
+{
+    cv::Mat image;
+    cv::GaussianBlur(rgb.clone(), image, cv::Size(5, 5), 0, 0);
+
+    auto cytoContours = calcCytoCervical(context);
+
+    //将包浆外部区域的背景色加深
+    cv::Mat maskCyto = cv::Mat::zeros(image.size(), CV_8UC1);
+    cv::drawContours(maskCyto, cytoContours, -1, cv::Scalar(255), cv::FILLED);
+
+    // 分离通道
+    std::vector<cv::Mat> channels;
+    cv::split(image, channels);
+
+    // 对包浆之外的区域进行变浅处理
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            if (maskCyto.ptr(y)[x] == 0) {
+                channels[0].ptr(y)[x] = 0;
+                channels[1].ptr(y)[x] = 0;
+                channels[2].ptr(y)[x] = 0;
+            }
+        }
+    }
+
+    // 计算每个通道的梯度幅值
+    std::vector<cv::Mat> gradientMagnitudes;
+    for (const auto& channel : channels) {
+        cv::Mat Gx, Gy;
+        cv::Sobel(channel, Gx, CV_64F, 1, 0, 3); // 水平方向梯度
+        cv::Sobel(channel, Gy, CV_64F, 0, 1, 3); // 垂直方向梯度
+        cv::Mat gradientMagnitude;
+        cv::magnitude(Gx, Gy, gradientMagnitude);
+        gradientMagnitudes.push_back(gradientMagnitude);
+    }
+
+
+    cv::normalize(gradientMagnitudes[0], gradientMagnitudes[0], 0, 255, cv::NORM_MINMAX, CV_8U);
+    cv::normalize(gradientMagnitudes[1], gradientMagnitudes[1], 0, 255, cv::NORM_MINMAX, CV_8U);
+    cv::normalize(gradientMagnitudes[2], gradientMagnitudes[2], 0, 255, cv::NORM_MINMAX, CV_8U);
+
+    // 取梯度, 取其中最大值 * 3
+    cv::Mat gradientMagnitude;
+    (cv::max)(gradientMagnitudes[0], gradientMagnitudes[1], gradientMagnitude);
+    (cv::max)(gradientMagnitude, gradientMagnitudes[2], gradientMagnitude);
+    cv::multiply(gradientMagnitude, 3, gradientMagnitude);
+
+    LOG_DEBUG << "gradientMagnitude.type() = " << gradientMagnitude.type() << endl;
+
+    context->saveMiddleImg(gradientMagnitude, "gradientMagnitude.jpg");
+
+    // 二值化
+    cv::Mat binaryImage;
+    cv::threshold(gradientMagnitude, binaryImage, 70, 255, cv::THRESH_BINARY);
+
+    context->saveMiddleImg(binaryImage, "binaryImage.jpg");
+    // 轮廓检测
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(binaryImage, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+
+    // 计算每个轮廓度的凸包
+    std::vector<std::vector<cv::Point>> convexHulls;
+    for (const auto& contour : contours) {
+
+        if (!filterContour(contour, context)) {
+            continue;
+        }
+
+        convexHulls.push_back(contour);
+    }
+
+    // 填充白色, 方便下一步继续识别细胞核
+    for (const auto& contour : convexHulls) {
+        cv::fillPoly(binaryImage, std::vector<std::vector<cv::Point>>{contour}, cv::Scalar(255));
+    }
+
+    context->saveMiddleImg(binaryImage, "fill_binaryImage.jpg");
+
+    contours.clear();
+    // 轮廓检测
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(binaryImage, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
+
+    LOG_DEBUG << "contours.size() = " << contours.size() << endl;
+
+    std::vector<std::vector<cv::Point>> resultContours;
+    std::vector<std::vector<cv::Point>> resultContoursAll;
+    for (size_t i = 0; i < contours.size(); i++) {
+        if (filterContour(contours[i], context)) {
+
+            resultContoursAll.push_back(contours[i]);
+
+            cv::Rect rect = cv::boundingRect(contours[i]);
+
+            //在rect内部, 再重新寻找路径, 方法: 计算路径内的平均灰度值, 小于平均灰度值作为新的路径
+            cv::Mat coreMat = context->getOrgGrey()(rect);
+            cv::Mat maskMat = cv::Mat::zeros(coreMat.size(), coreMat.type());
+            //mask内部填充为白色
+            cv::drawContours(maskMat, std::vector<std::vector<cv::Point>>({ contours[i] }), -1, cv::Scalar(255), cv::FILLED, cv::LINE_8, cv::noArray(), INT_MAX, cv::Point(-rect.x, -rect.y));
+            auto meanScalar = cv::mean(coreMat, maskMat);
+
+            //计算外圈的平均灰度值
+            cv::bitwise_not(maskMat, maskMat);
+            auto meanScalar2 = cv::mean(coreMat, maskMat);
+
+            //细胞浆更浅, 比细胞核 灰度值>5才认为有效
+            int diff = meanScalar2[0] - meanScalar[0];
+            if (diff > 5)
+            {
+                // LOG_DEBUG << "meanScalar[0] = " << meanScalar[0] << ", meanScalar2[0] = " << meanScalar2[0] << ", meanScalar[0] - meanScalar2[0] = " << meanScalar[0] - meanScalar2[0] << endl;
+
+                cv::Mat binaryImage;
+                cv::threshold(coreMat, binaryImage, meanScalar[0] + (std::min)(15, diff / 2), 255, cv::THRESH_BINARY_INV);
+                std::vector<std::vector<cv::Point>> newContours;
+                cv::findContours(binaryImage, newContours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+
+                for (int j = 0; j < newContours.size(); j++)
+                {
+                    for (int k = 0; k < newContours[j].size(); k++)
+                    {
+                        newContours[j][k].x += rect.x;
+                        newContours[j][k].y += rect.y;
+                    }
+
+                    if (!filterContour(newContours[j], context))
+                    {
+                        continue;
+                    }
+
+                    resultContours.push_back(newContours[j]);
+                }
+            }
+        }
+    }
+
+    LOG_DEBUG << "resultContours.size() = " << resultContours.size() << ", resultContoursAll.size() = " << resultContoursAll.size() << endl;
+
+    cv::Mat mask = cv::Mat::zeros(binaryImage.size(), CV_8UC1);
+    cv::drawContours(mask, resultContours, -1, cv::Scalar(255), cv::FILLED);
+
+    if (context->isSaveMiddle())
+    {
+        context->saveMiddleImg(mask, "org_core.jpg");
+
+        cv::Mat org = context->getOrgRGB().clone();
+        cv::drawContours(org, resultContours, -1, cv::Scalar(0, 255, 0), 1);
+        context->saveMiddleImg(org, "org_core_contours.jpg");
+
+        cv::Mat orgAll = context->getOrgRGB().clone();
+        cv::drawContours(orgAll, resultContoursAll, -1, cv::Scalar(0, 255, 0), 1);
+        context->saveMiddleImg(orgAll, "org_core_contours_all.jpg");
+    }
+
+    for (int y = 0; y < binaryImage.rows; ++y) {
+        for (int x = 0; x < binaryImage.cols; ++x) {
+            if (mask.ptr(y)[x] == 255)
+            {
+                binaryImage.ptr(y)[x] = CORE_VALUE;
+            }
+            else
+            {
+                binaryImage.ptr(y)[x] = 0;
+            }
+        }
+    }
+
+    return std::make_pair(binaryImage, resultContours);
+}
+
+#endif
+
+#if 1
+
+std::vector<std::vector<cv::Point>> calcCytoCervical(cv::Mat &bgr, int *bg)
+{
+
+    // use cv::imwrite to implement saveMiddleImg
+    auto saveMiddleImg = [](const cv::Mat &img, const std::string &filename)
+    {
+        cv::imwrite(filename, img);
+    };
+
+    int backgroundThre = bg[0] - 30;
+
+    // 使用blue通道计算包浆
+    std::vector<cv::Mat> brgImg;
+    cv::split(bgr, brgImg);
+    cv::Mat binaryImage;
+    cv::threshold(brgImg[0], binaryImage, backgroundThre, 255, cv::THRESH_BINARY);
+
+    if (1)
+    {
+
+        saveMiddleImg(brgImg[0], "org_blue.jpg");
+
+        saveMiddleImg(brgImg[1], "org_green.jpg");
+        saveMiddleImg(brgImg[2], "org_red.jpg");
+
+        saveMiddleImg(binaryImage, "org_background.jpg");
+    }
+
+    cv::Mat invertedGrayMask;
+    cv::bitwise_not(binaryImage, invertedGrayMask);
+
+    /////////////////////////
+    cv::Size kernelSize = cv::Size(5, 5);
+    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, kernelSize);
+
+    // 应用闭运算
+    cv::Mat imgClosed;
+    cv::morphologyEx(invertedGrayMask, imgClosed, cv::MORPH_CLOSE, kernel);
+
+    // 应用开运算
+    cv::morphologyEx(imgClosed, invertedGrayMask, cv::MORPH_OPEN, kernel);
+
+    std::vector<std::vector<cv::Point>> cypoContours;
+    cv::findContours(invertedGrayMask, cypoContours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+
+    // 过滤无效的数据, 太大或者太小都过滤掉
+    std::vector<std::vector<cv::Point>> cytoContours;
+
+    float pixelLength = 0.565;
+
+    for (size_t i = 0; i < cypoContours.size(); i++)
+    {
+        auto area = cv::contourArea(cypoContours[i]) * pixelLength * pixelLength;
+
+#define MIN_CYTO_AREA (150 / 4)
+
+        if (area < MIN_CYTO_AREA)
+        {
+            continue;
+        }
+
+        cytoContours.push_back(cypoContours[i]);
+    }
+
+    if (1)
+    {
+        cv::Mat org = bgr.clone();
+        cv::drawContours(org, cytoContours, -1, cv::Scalar(0, 255, 0), 1);
+        saveMiddleImg(org, "org_cyto_contours.jpg");
+    }
+
+    return cytoContours;
+}
+
+
+std::vector<std::vector<cv::Point>> doChestProcessY(const cv::Mat& img, int *bg, int bin_thres)
+{
+
+    using cvContour = std::vector<std::vector<cv::Point>>;
+    cv::Mat image;
+
+
+    vector<string> vtag = { "b", "g", "r", "gray" };
+
+    // find the cell contour in all vbgr
+
+    vector<cv::Mat> vmasks;
+
+
+    cv::Mat bin_img;
+    cv::Mat gray = img;
+    cv::threshold(gray, bin_img, bg[3] - bin_thres, 255, cv::THRESH_BINARY);
+    bin_img = ~bin_img;
+    auto mask_r = bin_img.clone();
+    mask_r.setTo(0);
+
+    std::vector<std::vector<cv::Point>> contours;
+
+    std::vector<std::vector<cv::Point>> contours_roi;
+
+    cv::findContours(bin_img, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+    int cnt = 0;
+    for (const auto& e_contour : contours)
+    {
+        double area = cv::contourArea(e_contour);
+
+        if (area > 20) // Example threshold, adjust as needed
+        {
+            // cv::drawContours(e_chn, std::vector<std::vector<cv::Point>>{e_contour}, -1, cv::Scalar(255), 1);
+
+            // cv::drawContours(mask, std::vector<std::vector<cv::Point>>({ e_contour }), -1, cv::Scalar(255, 0, 0), cv::FILLED); // Filled contours  
+            cv::drawContours(mask_r, contours, cnt, cv::Scalar(255, 0, 0), cv::FILLED); // Filled contours  
+            // Draw the contours on the mask  
+
+            contours_roi.push_back(contours[cnt]);
+
+
+            // cv::drawContours(mask, contours, static_cast<int>(cnt), cv::Scalar(255), cv::FILLED); // Filled contours  
+
+
+
+             // write a number in contour center
+            cv::Moments moments = cv::moments(e_contour);
+            cv::Point center(moments.m10 / moments.m00, moments.m01 / moments.m00);
+            // 在中心位置画数字
+            //std::string text = std::to_string(cnt); // 转换为字符串，使用i+1作为标号
+            // cv::putText(e_chn, text, center, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(222, 222, 222), 1);
+
+        }
+        cnt++;
+        // cv::drawContours(channel, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), 1);
+    }
+
+    cv::Mat img_b_r = img & mask_r;
+
+    cimg ci; 
+
+
+
+
+    auto img_all = ci.hconcat({ img, img_b_r }, 0);
+    //ci.s_i(img_all);
+
+
+
+
+
+    return contours_roi; 
+
+    // auto cytoContours = calcCytoCervical(bgr, bg);
+}
+
+
+void doChestProcess(cv::Mat &bgr)
+{
+
+    using cvContour = std::vector<std::vector<cv::Point>>;
+    cv::Mat image;
+
+    int cutrows = 400;
+    int cutcols = 400;
+    int bin_thres = 86;
+
+    int intv = 4;
+
+    cv::Mat gray; // Assuming you need to pass a grayscale image
+    cv::cvtColor(bgr, gray, cv::COLOR_BGR2GRAY);
+    int bg[4];
+    doCurrentBackground(bgr, gray, bg);
+
+    // print all bg
+    for (int i = 0; i < 4; i++)
+    {
+        cout << "bg[" << i << "] = " << bg[i] << endl;
+    }
+
+    cv::GaussianBlur(bgr, image, cv::Size(5, 5), 0, 0);
+
+    std::vector<cv::Mat> vbgr;
+    cv::split(bgr, vbgr);
+
+
+    auto img_r = vbgr[2]; 
+    auto img_g = vbgr[1];
+
+
+
+    // vbgr.push_back(gray);
+
+    cimg ci;
+
+
+    int x = (img_r.cols - cutcols) / 2;
+    int y = (img_r.rows - cutrows) / 2;
+    img_r = img_r(cv::Rect(x, y, cutcols, cutrows));
+
+
+    img_g = img_g(cv::Rect(x, y, cutcols, cutrows));
+
+    // auto img_copy = ci.hconcat(vbgr, intv).clone();
+
+    vector<string> vtag = {"b", "g", "r", "gray"};
+
+    // find the cell contour in all vbgr
+
+    vector<cv::Mat> vmasks;
+
+
+    cv::Mat bin_img;
+    cv::threshold(img_r, bin_img, bg[3] - bin_thres, 255, cv::THRESH_BINARY);
+    bin_img = ~bin_img;
+    auto mask_r = bin_img.clone();
+    mask_r.setTo(0);
+
+    std::vector<std::vector<cv::Point>> contours;
+
+    std::vector<std::vector<cv::Point>> contours_roi;
+
+    cv::findContours(bin_img, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+    int cnt = 0;
+    for (const auto& e_contour : contours)
+    {
+        double area = cv::contourArea(e_contour);
+
+        if (area > 20) // Example threshold, adjust as needed
+        {
+            // cv::drawContours(e_chn, std::vector<std::vector<cv::Point>>{e_contour}, -1, cv::Scalar(255), 1);
+
+            // cv::drawContours(mask, std::vector<std::vector<cv::Point>>({ e_contour }), -1, cv::Scalar(255, 0, 0), cv::FILLED); // Filled contours  
+            cv::drawContours(mask_r, contours, cnt, cv::Scalar(255, 0, 0), cv::FILLED); // Filled contours  
+            // Draw the contours on the mask  
+
+            contours_roi.push_back(contours[cnt]);
+
+
+            // cv::drawContours(mask, contours, static_cast<int>(cnt), cv::Scalar(255), cv::FILLED); // Filled contours  
+
+
+
+             // write a number in contour center
+            cv::Moments moments = cv::moments(e_contour);
+            cv::Point center(moments.m10 / moments.m00, moments.m01 / moments.m00);
+            // 在中心位置画数字
+            //std::string text = std::to_string(cnt); // 转换为字符串，使用i+1作为标号
+            // cv::putText(e_chn, text, center, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(222, 222, 222), 1);
+
+        }
+        cnt++;
+        // cv::drawContours(channel, std::vector<std::vector<cv::Point>>{contour}, -1, cv::Scalar(255), 1);
+    }
+
+    cv::Mat img_b_r = img_g & mask_r;
+
+    
+
+
+
+    ci.s_i(img_b_r); 
+
+
+
+
+
+    // auto cytoContours = calcCytoCervical(bgr, bg);
+}
+
+void findScanArea(const std::vector<cv::Point>& contour, std::vector<int>& scanX, std::vector<int>& scanY)
+{
+    // 确保轮廓不为空
+    assert(!contour.empty());
+
+    // 按 y 坐标对轮廓点进行排序（如果尚未排序）
+    std::vector<cv::Point> sortedContour = contour;
+    std::sort(sortedContour.begin(), sortedContour.end(), [](const cv::Point& a, const cv::Point& b) {
+        return a.y < b.y || (a.y == b.y && a.x < b.x);
+    });
+
+    int currentY = sortedContour[0].y;
+    scanY.push_back(currentY);
+    scanX.push_back(sortedContour[0].x);
+    scanX.push_back(sortedContour[0].x);
+
+    // 遍历排序后的轮廓点
+    for (size_t i = 1; i < sortedContour.size(); ++i) {
+        if (sortedContour[i].y != currentY) {
+            // 我们移动到了新的一行
+            currentY = sortedContour[i].y;
+            scanY.push_back(currentY);
+            scanX.push_back(sortedContour[i].x);
+            scanX.push_back(sortedContour[i].x);
+        }
+        else
+        {
+            scanX.back() = sortedContour[i].x;
+        }
+    }
+}
+
+
+bool isCircle(const std::vector<cv::Point>& contour) {
+
+    vector<int> ScanX;
+    vector<int> ScanY;
+    findScanArea(contour, ScanX, ScanY);
+
+    int count = 0;
+    for (int i = 0; i < ScanY.size(); i++)
+    {
+        if (ScanX[2 * i + 1] - ScanX[2 * i] > 0)
+        {
+            count++;
+        }
+    }
+
+    return count > 3;
+}
+
+
+bool filterContour(const std::vector<cv::Point>& contour)
+{
+    cv::Rect rect = cv::boundingRect(contour);
+    if (rect.width < 6 || rect.height < 6) {
+        // LOG_DEBUG << "rect.width = " << rect.width << ", rect.height = " << rect.height << endl;
+        return false;
+    }
+
+    if (!isCircle(contour))
+    {
+        return false;
+    }
+
+    float pixelLength = 0.565;
+    const int MAX_CORE_AREA = 55;
+    const int MIN_CORE_AREA = 10;
+
+
+    auto area = cv::contourArea(contour) * pixelLength * pixelLength;
+    if (area > MAX_CORE_AREA || area < MIN_CORE_AREA)
+    {
+        // LOG_DEBUG << "area = " << area << endl;
+        return false;
+    }
+
+    //判断不接近圆, 也过滤掉
+    //计算圆度, 对于非圆形的封闭图形，其圆度值会小于1。图形越接近圆形，圆度值越接近1
+    double perimeter = cv::arcLength(contour, true);
+    double circularity = 12.566f * cv::contourArea(contour) / (perimeter * perimeter);
+    // LOG_DEBUG << "circularity = " << circularity << endl;
+    if (circularity < 0.5) {
+        // LOG_DEBUG << "circularity = " << circularity << endl;
+        return false;
+    }
+
+    return true;
+
+}
+
+
+void deal_bbox_diff(const cv::Mat& img, const cv::Mat& mask, cv::Mat& diffimg, const cv::Rect& bbox, float smallerscale = 1.0f, int thres=100)
+{
+    double sum = 0.0;
+    int count = 0;
+
+
+
+
+
+    for (int r = bbox.y + 1; r < bbox.y + bbox.height - 1; r++)
+    {
+        for (int c = bbox.x + 0; c < bbox.x + bbox.width - 1; c++)
+        {
+
+            if (mask.ptr(r)[c] != 0)
+            {
+
+               
+                auto& e = img.ptr(r)[c];  auto& e_right = img.ptr(r)[c + 1];
+                auto& e_down = img.ptr(r+1)[c];
+                auto& e_upright = img.ptr(r - 1)[c + 1];
+                auto& e_downright = img.ptr(r + 1)[c + 1];
+
+
+                auto d_x = abs(e_right - e);
+                auto d_y = abs(e_down - e);
+                auto d_diag = abs(e_downright - e);
+                auto d_vice_diag = abs(e_upright - e);
+
+                int d_xydiag = (d_x + d_y + d_diag) / smallerscale;
+
+
+                if (d_xydiag > thres)
+                {
+                    d_xydiag = thres;
+                }
+
+                
+
+                diffimg.ptr(r)[c] = d_xydiag;
+            }
+        }
+    }
+
+
+
+
+
+
+}
+
+
+
+bool isRectInImage(const cv::Rect& rect, const cv::Mat& img) {
+    return (rect.x >= 0 && rect.y >= 0 &&
+        (rect.x + rect.width) <= img.cols &&
+        (rect.y + rect.height) <= img.rows);
+}
+void deal_bbox_d_diff(const cv::Mat& img, const cv::Mat& mask, cv::Mat& diffimg, const cv::Rect& bbox, float smallerscale = 1.0f, int thres = 100)
+{
+    double sum = 0.0;
+    int count = 0;
+
+
+
+
+
+    for (int r = bbox.y + 1; r < bbox.y + bbox.height - 1; r++)
+    {
+        for (int c = bbox.x + 0; c < bbox.x + bbox.width - 1; c++)
+        {
+
+            if (mask.ptr(r)[c] != 0)
+            {
+
+
+                auto& e = img.ptr(r)[c];  auto& e_right = img.ptr(r)[c + 1];
+                auto& e_down = img.ptr(r + 1)[c];
+
+                auto& e_downright = img.ptr(r + 1)[c + 1];
+                auto& e_upright = img.ptr(r - 1)[c + 1];
+
+
+                auto d_x = abs(e_right - e);
+                auto d_y = abs(e_down - e);
+                auto d_diag = abs(e_downright - e);
+                auto d_vice_diag = abs(e_upright - e);
+                int d_xydiag = (d_x + d_y + d_diag) / smallerscale;
+
+
+
+                if (d_xydiag > thres)
+                {
+                    d_xydiag = 0;
+                }
+
+
+
+                diffimg.ptr(r)[c] = d_xydiag;
+            }
+        }
+    }
+
+
+
+
+
+
+}
+
+
+
+
+cv::Mat clone_contour_bb(const cv::Mat& src_r0, const std::vector<cv::Point>& e_contour)
+{
+    auto maskB = src_r0.clone().setTo(0);
+    cv::drawContours(maskB, std::vector<std::vector<cv::Point>>{e_contour}, -1, cv::Scalar(255), cv::FILLED);
+    
+    cv::Rect bb = cv::boundingRect(e_contour);
+
+    cv::Point tl = bb.tl();  
+    cv::Size2i bbsz = bb.size();
+
+    // get bb width , height to a cvSize 
+    auto tl_r0 = tl;
+    auto bbsz_r0 = bbsz;
+
+    tl -= cv::Point(2, 2);  
+
+    // boundingBox size += 4
+    bbsz.width += 4;
+    bbsz.height += 4;
+
+
+    // to judge if a rect in img range?
+    auto bb_r0 = bb; 
+
+   
+    bb = cv::Rect(tl, bbsz);
+
+    if (isRectInImage(bb, maskB))
+    {
+        // in side 
+    }
+    else
+    {
+        bb = bb_r0; 
+    }
+
+    // 从原始图像中提取 ROI
+    cv::Mat imgroi = src_r0(bb).clone();
+    cv::Mat maskroi = maskB(bb).clone();
+
+    return imgroi & maskroi;
+
+}
+
+
+
+// find min but non-zero pixel location (x0,y0)
+cv::Point2i findMinNonZeroPixel(const cv::Mat& img) {
+    cv::Point2i minPoint(-1, -1);
+    uchar minValue = 255; // Initialize to max value for uchar
+
+    for (int r = 0; r < img.rows; r++) {
+        for (int c = 0; c < img.cols; c++) {
+            uchar pixelValue = img.ptr<uchar>(r)[c];
+            if (pixelValue > 0 && pixelValue < minValue) {
+                minValue = pixelValue;
+                minPoint = cv::Point2i(c, r);
+            }
+        }
+    }
+    return minPoint;
+}
+
+struct pixelValPos
+{
+    uchar ep;
+    cv::Point2i exy;
+};
+
+
+std::vector<pixelValPos> getChestCellPixelStatInfo(const cv::Mat& img, int N, int* numofNonzero)
+{
+
+
+    // loop img and put all pixel to a vector<uchar>, also put its x,y to vector<cv::Point2i> 
+    vector<uchar> pixels;
+    vector<cv::Point2i> coordinates;
+
+    vector<pixelValPos> vpxy;
+
+    vector<pixelValPos> vFeatures = {};
+
+
+    for (int r = 0; r < img.rows; r++)
+    {
+        for (int c = 0; c < img.cols; c++)
+        {
+            auto& ep = img.ptr<uchar>(r)[c];
+            if (ep != 0)
+            {
+                vpxy.push_back({ ep,{c,r} });
+            }
+        }
+    }
+
+    auto sz = vpxy.size();
+    *numofNonzero = sz;
+
+    if (sz < N * 2)
+    {
+        return vFeatures;
+    }
+
+
+    // sort vpxy by vpxy.ep
+    std::sort(vpxy.begin(), vpxy.end(), [](const pixelValPos& a, const pixelValPos& b) {
+        return a.ep < b.ep; // Assuming 'ep' is a member of the elements in vpxy
+    });
+
+
+
+    double avg_l = 0;
+    double avg_h = 0;
+    double avg_all = 0;
+
+
+
+    vector<uchar> vstddev;
+
+    // strip front , tail
+    for (int i = 1; i < N + 1; i++)
+    {
+        avg_l += vpxy[i].ep;
+
+        avg_h += vpxy[sz - 1 - i].ep;
+    }
+
+    int cnt_mid = 1;
+    string sb;
+    for (int i = 0; i < sz / 5 * 2; i++)
+    {
+        avg_all += vpxy[i].ep;
+        // sb += to_string(int(vpxy[i].ep)) +  ",";
+        cnt_mid++;
+    }
+
+    // LOG_DEBUG <<sb << endl;
+
+
+    avg_l /= N;
+    avg_h /= N;
+    avg_all /= cnt_mid;
+
+
+    uchar uc_l = avg_l;
+    uchar uc_h = avg_h;
+
+    auto minp = vpxy[0].exy;
+
+    double avg_center = 0;
+
+    for (int r = -2; r <= 2; r++)
+    {
+        int row_t = minp.y + r;
+
+        if (row_t < 0 || row_t >= img.rows)
+        {
+            continue;
+        }
+        auto* er = img.ptr<uchar>(row_t);
+
+        for (int c = -2; c <= 2; c++)
+        {
+            int col_t = minp.x + c;
+
+            if (col_t < 0 || col_t >= img.cols)
+            {
+                continue;
+            }
+
+            if (er[col_t] < (uchar)(uc_l + 30))
+            {
+                vstddev.push_back(er[col_t]);
+                avg_center += er[col_t];
+            }
+        }
+    }
+
+    auto stddevsz = vstddev.size();
+    if (stddevsz == 0)
+    {
+        stddevsz = 1;
+    }
+    avg_center /= vstddev.size();
+
+    double squaredDiffSum = 0.0;
+    for (double value : vstddev)
+    {
+        squaredDiffSum += (value - avg_center) * (value - avg_center);
+    }
+
+    uchar stddev = squaredDiffSum / vstddev.size();
+
+
+
+
+    vFeatures = { vpxy[0], vpxy[sz - 1] , {uc_l,{0,0}},{uc_h,{0,0}},   {stddev,{0,0}}, {(uchar)avg_all,{0,0}} };
+
+    // vector<h,l, avg_h, avg_l);
+    return vFeatures;
+}
+
+
+// 获取coreInnerxy位置的八领域的平均值
+double getAverageOfNeighborhood(const cv::Mat& img, const cv::Point& coreInnerxy) 
+{
+    int sum = 0;
+    int count = 0;
+
+    for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+            int x = coreInnerxy.x + j;
+            int y = coreInnerxy.y + i;
+
+            if (x >= 0 && x < img.cols && y >= 0 && y < img.rows) {
+                sum += img.ptr<uchar>(y)[x];
+                count++;
+            }
+        }
+    }
+
+    return count > 0 ? static_cast<double>(sum) / count : 0.0;
+}
+
+
+#define  CONST_LHAVGLHSTD_EXPECTED 6
+
+
+
+
+cv::Mat  toGrayByStripMin(const cv::Mat & img_)
+{
+    
+    // ci.img , {b,g,r} get min, then strip min from b,g,r, and average the other two
+    //auto& img = ci.img;
+    auto img = img_.clone();
+    assert(img.channels() == 3); // 确保图像是三通道的
+    vector<cv::Mat> vbgr;;
+    cv::split(img, vbgr); // 将图像拆分为三个通道
+
+    auto gray = vbgr[0].clone();
+
+    int sum = 0;
+    int cnt = 0;
+
+    for (int r = 0; r < img.rows; r++)
+    {
+        for (int c = 0; c < img.cols; c++)
+        {
+            cv::Vec3b pixel = img.at<cv::Vec3b>(r, c);
+            uchar & e_gray = gray.ptr<uchar>(r)[c];
+
+            vector<uchar> vp = { pixel[0], pixel[1], pixel[2] };
+            std::sort(vp.begin(), vp.end());
+            e_gray = (vp[1] * 0.5 + vp[2] * 0.5);
+
+            if (e_gray == 255)
+            {
+                e_gray = 230;
+            }
+
+
+            sum += e_gray;
+            cnt++;
+
+        }
+    }
+
+
+    auto avg = sum / cnt;
+
+    
+    return gray; 
+
+}
+struct para_con
+{
+    int cen_avg;
+    int flag_filterout;
+    std::vector<cv::Point> * p_e_c;
+};
+
+
+
+// 计算直线 y = y0 与轮廓 c0 相交的两个点  
+std::vector<Point2f> getIntersectionPoints(const std::vector<Point>& contour, float y0) 
+{
+    vector<Point2f> intersectionPoints;
+
+    // 遍历每条边  
+    for (size_t i = 0; i < contour.size(); ++i) {
+        Point p1 = contour[i];
+        Point p2 = contour[(i + 1) % contour.size()]; // 下一个点，循环返回起始点  
+
+        // 检查两点的 y 坐标范围  
+        if ((p1.y <= y0 && p2.y >= y0) || (p1.y >= y0 && p2.y <= y0)) {
+            // 计算交点的 x 坐标  
+            float x = p1.x + (p2.x - p1.x) * (y0 - p1.y) / (p2.y - p1.y);
+            intersectionPoints.push_back(Point2f(x, y0));
+        }
+    }
+
+    // 返回找到的交点  
+    return intersectionPoints;
+}
+
+
+
+// 计算两个点之间的单位法向量  
+Point2f getNormal(const Point& p1, const Point& p2) {
+    float dx = p2.x - p1.x;
+    float dy = p2.y - p1.y;
+    float length = std::sqrt(dx * dx + dy * dy);
+    return Point2f(-dy / length, dx / length); // 逆时针旋转 90 度  
+}
+
+// 主函数：将轮廓向内收缩  
+// proportion 取值范围为 (0, 1)，其中 0.5 表示收缩 50%。  
+const std::vector<cv::Point> shrinkC(const std::vector<cv::Point>& contour, float proportion) {
+    std::vector<cv::Point> newContour;
+
+    if (contour.size() < 3) return newContour; // 至少需要三个点  
+
+    for (size_t i = 0; i < contour.size(); ++i) {
+        Point p1 = contour[i];
+        Point p2 = contour[(i + 1) % contour.size()]; // 下一个顶点  
+        Point p0 = contour[(i + contour.size() - 1) % contour.size()]; // 上一个顶点  
+
+        // 计算法向量  
+        Point2f normal1 = getNormal(p1, p2);
+        Point2f normal2 = getNormal(p0, p1);
+
+        // 计算平均法向量  
+        Point2f averageNormal = (normal1 + normal2) * 0.5; // 找到平均法向量  
+
+        // 计算到相邻点的距离，用于控制收缩  
+        float distance = cv::norm(p2 - p1); // 点 p1 到 p2 之间的距离  
+
+        // 收缩后的新点，向内收缩 proportion  
+        Point newPoint(
+            static_cast<int>(p1.x + averageNormal.x * proportion * distance),
+            static_cast<int>(p1.y + averageNormal.y * proportion * distance)
+        );
+
+        newContour.push_back(newPoint);
+    }
+
+    return newContour; // 返回收缩后的轮廓  
+}
+
+
+cv::Mat img_min_nonzero(const cv::Mat &img)
+{
+
+    struct pos_pv
+    {
+        int pos; 
+        int pv; 
+    };
+
+    vector<pos_pv> v_pos_pv(img.cols, {0, 255});
+    auto img_ret = img.clone().setTo(0);
+
+    for (int r = 0; r < img.rows; r++)
+    {
+        
+        int sum = 0; 
+        int cnt = 0; 
+        int avg = 0;
+        for(int c=0;c<img.cols;c++)
+        {
+            auto ev = img.ptr<uchar>(r)[c];
+            if (ev == 0)
+            {
+                ev = 255;
+            }
+            else
+            {
+                sum += ev; 
+                cnt++;
+            }
+
+            pos_pv e_p = {c, ev};
+            
+            
+            v_pos_pv[c] = e_p; 
+        }
+
+        avg = sum / cnt; 
+
+
+
+        
+
+        std::sort(v_pos_pv.begin(), v_pos_pv.end(), [](const pos_pv& a, const pos_pv& b) {
+            return a.pv < b.pv; 
+        });
+
+        cnt = 0;
+        for (int i = 0; i < v_pos_pv.size(); i++)
+        {
+            //if (cnt < v_pos_pv.size()/10)
+            //{
+            //    cnt++;
+            //    continue;
+            //}
+            if (cnt > v_pos_pv.size() / 4 )break;
+
+            auto e = v_pos_pv[i]; 
+            e.pos; 
+            e.pv; 
+
+            if (e.pv < avg *0.88)
+            {
+                img_ret.ptr<uchar>(r)[e.pos] = 255;
+            }
+            
+            cnt++;
+        }
+
+
+
+
+
+
+
+     
+        
+
+    }
+
+
+
+    return img_ret;
+
+
+}
+
+
+
+std::pair<cv::Mat, std::vector<std::vector<cv::Point>>>  findCellClusterContour(cv::Mat & gray)
+{
+    const int step_r = 32;
+    const int step_c = step_r;
+    const int overlap = step_r / 2;
+    const int thres_bg = 191;
+    const int thres = 80;
+    const int thres_cnt_roi = 100;
+    const int thres_area = 10000;
+    const float resize_factor = 0.41f;  // 加上 'f' 表示该值为 float  
+    const int CORE_MASK_PIXEL_VAL = 128;
+
+    const int size_e_row = 32;
+
+
+
+
+    std::pair<cv::Mat, std::vector<std::vector<cv::Point>>> p_con_roi;
+    auto & v_con_roi = p_con_roi.second; 
+
+
+    //  cimg ci; 
+
+    auto img = gray;
+
+    auto gray_r0 = gray.clone(); 
+
+
+    struct bb_cnt
+    {
+        cv::Rect bb;  // boundingBox
+        int cnt; // feature pixels cnt
+        // int row; // bb row idx
+        // int col; // bb col idx
+    };
+
+    vector<bb_cnt> v_bb_cnt;
+
+
+    // get gray intense value bb, and draw on img as white block
+    int row_cut = 0;
+
+    for (int r = 0; r < img.rows - step_r; r += (step_r - overlap))
+    {
+        int col_cut = 0;
+        for (int c = 0; c < img.cols - step_c; c += (step_c - overlap))
+        {
+
+            cv::Rect bb = cv::Rect(c, r, step_c, step_r);
+
+            cv::Mat img_roi = gray_r0(bb).clone();
+
+            int cnt = 0;
+            int cnt_bg = 1;
+            img_roi.forEach<uchar>(
+            [&thres, &thres_bg, &cnt, &cnt_bg](uchar& pixel, const int* position)
+            {
+                if (pixel < thres)
+                {
+                    cnt++;
+                }
+            });
+
+
+            if (cnt > thres_cnt_roi)
+            {
+                //  bb_cnt e_bb_cnt = { bb, cnt, row_cut, col_cut };
+                bb_cnt e_bb_cnt = {bb, cnt};
+                v_bb_cnt.push_back(e_bb_cnt);
+            }
+
+            col_cut++;
+        }
+
+        row_cut++;
+    }
+
+    // std::sort(v_bb_cnt.begin(), v_bb_cnt.end(), [](const bb_cnt& a, const bb_cnt& b) { return (a.cnt > b.cnt); });
+
+
+    img = gray_r0.clone();
+
+
+    // v_bb_cnt_roi = v_bb_cnt;
+
+    for (auto & e_bb_cnt : v_bb_cnt)
+    {
+        auto & bb = e_bb_cnt.bb;
+        // cv::Point center = cv::Point(bb.x + bb.width / 2 - 10, bb.y + bb.height / 2);
+        cv::rectangle(img, bb, cv::Scalar(255), cv::FILLED);
+    }
+
+    cv::threshold(img, img, 254, 255, cv::THRESH_BINARY);
+
+    std::vector<std::vector<cv::Point>> v_contours;
+    cv::findContours(img, v_contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+
+    for (auto& e_c : v_contours)
+    {
+        auto area = cv::contourArea(e_c);
+
+        if (area > thres_area)
+        {
+            // v_con_area.push_back(e_con_area);
+            std::vector<cv::Point> e_c_;
+            cv::convexHull(e_c, e_c_);
+            v_con_roi.push_back(e_c_);
+        }
+
+    }
+
+
+
+    // sort by v_con_area.area
+    // std::sort(v_con_area.begin(), v_con_area.end(), [](const auto& a, const auto& b) { return a.area > b.area; });
+
+    img = gray_r0.clone();
+
+    // draw contour on ci.img 
+    //img_contour_line = cv::Mat::zeros(img.size(), CV_8UC1);;
+    cv::drawContours(img, v_con_roi, -1, cv::Scalar(255), cv::FILLED);
+
+    
+
+    
+
+    cv::threshold(img, img, 255 - 1, CORE_MASK_PIXEL_VAL, cv::THRESH_BINARY);  // to 128
+
+
+
+    v_con_roi.clear();
+    cv::findContours(img, v_con_roi, cv::RETR_LIST, cv::CHAIN_APPROX_NONE); // get NONE contour
+
+
+    // cv::resize(img, img, cv::Size((int)(img.cols * resize_factor), int(img.rows * resize_factor)));
+    
+
+    p_con_roi.first = img.clone();
+
+    
+
+    cout << p_con_roi.first.rows << ":" << p_con_roi.second.size() << endl;
+    return p_con_roi;
+}
+
+
+void test_const_contour( vector<std::vector<Point>>  & v_con)
+{
+
+    for (auto& e : v_con)
+    {
+        cout << e.size() << endl; 
+        e.pop_back();
+        cout << e.size() << endl;
+    }
+    
+}
+
+#include <vector>
+#include <opencv2/opencv.hpp>
+
+using namespace std;
+
+bool IsContourBeTheSame(const vector<cv::Point>& contour1, const vector<cv::Point>& contour2) {
+    bool ret_same = false;
+
+    // 计算两个轮廓的中心点
+    cv::Moments m1 = cv::moments(contour1);
+    cv::Moments m2 = cv::moments(contour2);
+
+    const float lowestF = 1e-6;
+    if (abs(m1.m00) < lowestF) {
+        m1.m00 = lowestF;
+    }
+    if (abs(m2.m00) < lowestF) {
+        m2.m00 = lowestF;
+    }
+
+    cv::Point2f center1(m1.m10 / m1.m00, m1.m01 / m1.m00);
+    cv::Point2f center2(m2.m10 / m2.m00, m2.m01 / m2.m00);
+
+    // 计算中心点的距离
+    double centerDistance = cv::norm(center1 - center2);
+
+    // 计算中心点的相对偏差
+    double maxWidth = max(cv::boundingRect(contour1).width, cv::boundingRect(contour2).width);
+    double centerDeviation = centerDistance / maxWidth;
+
+    // 如果中心点偏差超过20%，提前返回
+    if (centerDeviation > 0.2) {
+        return ret_same;
+    }
+
+    // 计算两个轮廓的面积
+    double area1 = cv::contourArea(contour1);
+    double area2 = cv::contourArea(contour2);
+
+    // 计算面积的相对偏差
+    double areaDeviation = abs(area1 - area2) / max(area1, area2);
+
+    // 判断面积的相对偏差是否在38%以内
+    if (areaDeviation <= 0.38) {
+        ret_same = true;
+    }
+
+    return ret_same;
+}
+
+
+
+std::vector<std::string> split(const std::string& str, char delim) {
+    std::vector<std::string> tokens;
+    std::stringstream ss(str);
+    std::string token;
+
+    while (std::getline(ss, token, delim)) {
+        tokens.push_back(token);
+    }
+
+    return tokens;
+}
+
+// Function to parse points from a string like "[x1, y1],[x2, y2],..."
+std::vector<cv::Point2i> parsePoints(const std::string& pointsStr) {
+    std::vector<cv::Point2i> points;
+    std::string str = pointsStr;
+
+    // Process each [x, y] pair
+    size_t pos = 0;
+    while (pos < str.length()) {
+        // Find the start and end of the point definition
+        size_t startPos = str.find('[', pos);
+        size_t endPos = str.find(']', startPos);
+
+        if (startPos == std::string::npos || endPos == std::string::npos) {
+            break;
+        }
+
+        // Extract the x,y part
+        std::string pointPair = str.substr(startPos + 1, endPos - startPos - 1);
+
+        // Split by comma
+        size_t commaPos = pointPair.find(',');
+        if (commaPos != std::string::npos) {
+            int x = std::stoi(pointPair.substr(0, commaPos));
+            int y = std::stoi(pointPair.substr(commaPos + 1));
+            points.push_back(cv::Point2i(x, y));
+        }
+
+        // Move to the next point
+        pos = endPos + 1;
+    }
+
+    return points;
+}
+
+std::vector<std::vector<cv::Point2i>> readPointsFromFile(const std::string& filename, const std::string & roiStr) 
+{
+    // Vector to store all the points from the file
+    std::vector<std::vector<cv::Point2i>> allPoints;
+
+    // Open the file
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << std::endl;
+        return allPoints; // Return empty vector on error
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        // Split the line by semicolon
+
+        std::vector<std::string> parts = split(line, ';');
+
+        // Make sure we have at least 4 parts (filename, two numbers, and points)
+        if (parts.size() < 4) {
+            std::cerr << "Warning: Invalid line format: " << line << std::endl;
+            continue;
+        }
+
+        if (parts[0] != roiStr)
+        {
+			//std::cerr << "Warning: Invalid line format: " << line << std::endl;
+			continue;
+        }
+
+        // Parse the points from the fourth part
+        std::vector<cv::Point2i> linePoints = parsePoints(parts[3]);
+
+        // Add to our collection
+        allPoints.push_back(linePoints);
+    }
+
+    file.close();
+    return allPoints;
+}
+
+
+struct TotalFieldPara {
+    wchar_t BianHao[20], Unit[6];
+    float PixelLength;
+    int FieldNum, CellNum, CervicCellNum;
+    int RefCellNumber;
+    float RefCellODSum, RefCellODMean, RefCellODMeanLow;
+    bool IsDNAIndexCaculated;
+    char ScanType[8], UnMixModel;
+    bool IsYangxing, IsMeaDAB;
+    char Reserved[13];
+};
+
+
+bool get_IsDNAIndexCaculated(const char* filename)
+{
+    std::ifstream in(filename, std::ios::binary);
+    if (!in)
+    {
+        throw std::runtime_error("Failed to open file");
+    }
+
+    TotalFieldPara para;
+    if (!in.read(reinterpret_cast<char*>(&para), sizeof(TotalFieldPara)))
+    {
+        throw std::runtime_error("Failed to read header");
+    }
+
+    return para.IsDNAIndexCaculated;
+}
+
+// 修改头部IsDNAIndexCaculated, 保持尾部数据不变
+bool update_IsDNAIndexCaculated(const char* filename, bool newValue)
+{
+    std::ifstream in(filename, std::ios::binary | std::ios::ate);
+    if (!in)
+    {
+        std::cerr << "Cannot open input file.\n";
+        return false;
+    }
+    std::streamsize filesize = in.tellg();
+    if (filesize < (std::streamsize)sizeof(TotalFieldPara))
+    {
+        std::cerr << "File too small.\n";
+        return false;
+    }
+    in.seekg(0, std::ios::beg);
+
+    // 读取头部
+    TotalFieldPara para;
+    if (!in.read(reinterpret_cast<char*>(&para), sizeof(TotalFieldPara)))
+    {
+        std::cerr << "Read head failed.\n";
+        return false;
+    }
+
+    // 读取尾部
+    std::streamsize tail_size = filesize - sizeof(TotalFieldPara);
+    char* tail = new char[tail_size];
+    if (!in.read(tail, tail_size))
+    {
+        std::cerr << "Read tail failed.\n";
+        delete[] tail;
+        return false;
+    }
+    in.close();
+
+    // 修改
+    para.IsDNAIndexCaculated = newValue;
+
+    // 写回
+    std::ofstream out(filename, std::ios::binary | std::ios::trunc);
+    if (!out)
+    {
+        std::cerr << "Cannot open output file for writing.\n";
+        delete[] tail;
+        return false;
+    }
+    out.write(reinterpret_cast<char*>(&para), sizeof(TotalFieldPara));
+    out.write(tail, tail_size);
+
+    delete[] tail;
+    return true;
+}
+
+
+
+
+
+
+std::vector<int> searchAllComIdx(int max_port = 256)
+{
+
+    auto com_exists = [](int port) -> bool 
+    {
+           char name[20];
+           snprintf(name, sizeof(name), "\\\\.\\COM%d", port);
+           HANDLE h = CreateFileA(name, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+           if (h != INVALID_HANDLE_VALUE)
+           {
+               CloseHandle(h);
+               return true;
+           }
+           return false;
+       };
+
+
+    std::vector<int> result;
+    for (int i = 1; i <= max_port; ++i)
+    {
+        if (com_exists(i))
+        {
+            result.push_back(i);
+        }
+    }
+    return result;
+}
+
+
+// pad image to square, center the original image, pad value as border
+cv::Mat padToSquare(const cv::Mat& img)
+{
+    int h = img.rows;
+    int w = img.cols;
+    int size = max(h, w);
+
+    assert(img.channels() == 1 || img.channels() == 3); 
+
+	cv::Scalar border_value = cv::Scalar(215, 215, 215); // Default border value
+
+    if (img.channels() == 1)
+    {
+        border_value = cv::Scalar(0);
+    }
+
+    int pad_top = (size - h) / 2;
+    int pad_bottom = size - h - pad_top;
+    int pad_left = (size - w) / 2;
+    int pad_right = size - w - pad_left;
+
+    cv::Mat square_img;
+    cv::copyMakeBorder(img, square_img, pad_top, pad_bottom, pad_left, pad_right, cv::BORDER_CONSTANT, border_value);
+    return square_img;
+}
+
+// reverse pad2square: crop the center region to recover the original size
+cv::Mat reversePadTosquare(const cv::Mat& square_img, const cv::Size& old_size)
+{
+    int size = square_img.rows; // square, so rows==cols
+    int w = old_size.width;
+    int h = old_size.height;
+
+    int x = (size - w) / 2;
+    int y = (size - h) / 2;
+
+    x = max(0, x);
+    y = max(0, y);
+
+    int crop_w = min(w, size - x);
+    int crop_h = min(h, size - y);
+
+    return square_img(cv::Rect(x, y, crop_w, crop_h)).clone();
+}
+
+
+bool endsWith(const std::string& str)
+{
+    const std::string suffix = ".y.svs";
+    if (str.length() < suffix.length())
+    {
+        return false;
+    }
+    return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+}
+
+
+void TileImageToFill(const cv::Mat& src, cv::Mat& dst)
+{
+    if (src.empty() || dst.empty())
+    {
         return;
     }
 
-    // 计算数据的最大值  
-    double maxValue = *max_element(data.begin(), data.end());
+    int src_rows = src.rows;
+    int src_cols = src.cols;
+    int dst_rows = dst.rows;
+    int dst_cols = dst.cols;
 
-    int width = 800;
-    int height = 400;
-    Mat image(height, width, CV_8UC3, Scalar(255, 255, 255)); // 白色背景  
+    // 计算水平和垂直方向需要的重复次数
+    int h_repeats = (dst_cols + src_cols - 1) / src_cols;
+    int v_repeats = (dst_rows + src_rows - 1) / src_rows;
 
-    // 绘制坐标轴  
-    line(image, Point(50, height - 50), Point(50, 50), Scalar(0, 0, 0), 2); // y 轴  
-    line(image, Point(50, height - 50), Point(width - 50, height - 50), Scalar(0, 0, 0), 2); // x 轴  
+    // 逐块复制图像
+    for (int i = 0; i < v_repeats; ++i)
+    {
+        for (int j = 0; j < h_repeats; ++j)
+        {
+            int top = i * src_rows;
+            int left = j * src_cols;
 
-    // 绘制 y 轴刻度  
-    for (int i = 0; i <= 10; i++) {
-        int y = height - 50 - (i * (height - 100) / 10);
-        line(image, Point(45, y), Point(55, y), Scalar(0, 0, 0), 1);
-        putText(image, to_string(static_cast<int>(i * (maxValue / 10))), Point(10, y + 5), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 0), 1);
-    }
+            // 计算当前区块的实际宽高（处理边界情况）
+            int roi_width = min(src_cols, dst_cols - left);
+            int roi_height = min(src_rows, dst_rows - top);
 
-    // 绘制 x 轴刻度  
-    int dataSize = static_cast<int>(data.size());
-    for (int i = 0; i < dataSize; i++) {
-        int x = 50 + (i * (width - 100) / (dataSize - 1));
-        line(image, Point(x, height - 45), Point(x, height - 55), Scalar(0, 0, 0), 1);
-        putText(image, to_string(i), Point(x - 10, height - 30), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 0), 1);
-    }
+            if (roi_width <= 0 || roi_height <= 0)
+            {
+                continue;
+            }
 
-    // 声明 prevX 和 prevY  
-    double prevX = 50 + (0 * (width - 100) / (dataSize - 1)); // 初始化第一个点位置  
-    double prevY = height - 50 - (static_cast<double>(data[0]) / maxValue * (height - 100)); // 初始化第一个点位置  
+            // 创建目标区域
+            cv::Rect dst_roi(left, top, roi_width, roi_height);
+            cv::Mat dst_region = dst(dst_roi);
 
-    // 根据最大值进行归一化并绘制数据  
-    for (int i = 0; i < dataSize; i++) {
-        double normalizedValue = static_cast<double>(data[i]) / maxValue; // 归一化到0到1之间  
-        double x = 50 + (i * (width - 100) / (dataSize - 1));
-        double y = height - 50 - (normalizedValue * (height - 100));
+            // 创建源区域（可能需要裁剪源图像）
+            cv::Rect src_roi(0, 0, roi_width, roi_height);
+            cv::Mat src_region = src(src_roi);
 
-        // 绘制点  
-        circle(image, Point(x, y), 5, Scalar(0, 0, 255), -1); // 用红色圆圈标记数据点  
-
-        // 如果是第一个点，记录它的x和y  
-        if (i > 0) {
-            // 绘制线段  
-            line(image, Point(prevX, prevY), Point(x, y), Scalar(0, 0, 255), 2);
+            // 复制图像
+            src_region.copyTo(dst_region);
         }
+    }
+}
 
-        // 更新上一个点的信息  
-        prevX = x;
-        prevY = y;
+vector<vector<Point>> convert_roi_contours_to_big(const vector<vector<Point>>& roi_contours, const Rect& roi_rect)
+{
+    vector<vector<Point>> big_contours;
+    for (const auto& contour : roi_contours)
+    {
+        vector<Point> big_contour;
+        for (const auto& pt : contour)
+        {
+            big_contour.push_back(Point(pt.x + roi_rect.x, pt.y + roi_rect.y));
+        }
+        big_contours.push_back(big_contour);
+    }
+    return big_contours;
+}
+
+float countPixelsRateOnLines(const cv::Mat& grayImage, unsigned char thresGray)
+{
+
+	if (grayImage.channels() != 1)
+	{
+		throw std::invalid_argument("Input image must be a grayscale image.");
+	}
+    int totalPixelCount = 0;
+    int sumThres = 0;
+
+    int height = grayImage.rows;
+    int width = grayImage.cols;
+
+    // Calculate positions for the 3 horizontal lines
+    int hLine1 = height / 4;
+    int hLine2 = height / 2;
+    int hLine3 = height * 3 / 4;
+
+    // Calculate positions for the 3 vertical lines
+    int vLine1 = width / 4;
+    int vLine2 = width / 2;
+    int vLine3 = width * 3 / 4;
+
+    // Process horizontal lines
+    for (int line : {hLine1, hLine2, hLine3})
+    {
+        for (int x = 0; x < width; ++x)
+        {
+            uchar pixelValue = grayImage.at<uchar>(line, x);
+
+            totalPixelCount++;
+            if (pixelValue < thresGray && pixelValue > 9)
+            {
+                sumThres++;
+            }
+        }
     }
 
-    // 用箭头标注最大值及其位置  
-    int maxIndex = distance(data.begin(), max_element(data.begin(), data.end()));
-    int maxX = 50 + (maxIndex * (width - 100) / (dataSize - 1));
-    // 注意这里只需要 maxValue 的位置而非归一化值  
-    int maxY = height - 50 - (maxValue / maxValue * (height - 100)); // maxY 永远是顶部  
+    // Process vertical lines
+    for (int line : {vLine1, vLine2, vLine3})
+    {
+        for (int y = 0; y < height; ++y)
+        {
+            uchar pixelValue = grayImage.at<uchar>(y, line);
 
-    putText(image, "Max: " + to_string(static_cast<int>(maxValue)) + " at index " + to_string(maxIndex),
-        Point(maxX + 10, maxY - 10), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0, 0, 0), 1);
+            totalPixelCount++;
+            if (pixelValue < thresGray)
+            {
+                sumThres++;
+            }
+        }
+    }
 
-    // 显示图像  
-    imshow(windowName, image);
-    waitKey(0);
+    return sumThres * 1.0f / totalPixelCount;
 }
+
+cv::Rect expand_rect(const cv::Rect& rect, float expand_ratio, const cv::Mat& img)
+{
+    // Calculate expansion amount
+    int dx = static_cast<int>(rect.width * expand_ratio * 0.5);
+    int dy = static_cast<int>(rect.height * expand_ratio * 0.5);
+
+    // Create expanded rectangle
+    cv::Rect expanded_rect;
+    expanded_rect.x = rect.x - dx;
+    expanded_rect.y = rect.y - dy;
+    expanded_rect.width = rect.width + 2 * dx;
+    expanded_rect.height = rect.height + 2 * dy;
+
+    // Ensure the expanded rectangle stays within image boundaries
+    expanded_rect.x = max(0, expanded_rect.x);
+    expanded_rect.y = max(0, expanded_rect.y);
+    expanded_rect.width = min(expanded_rect.width, img.cols - expanded_rect.x);
+    expanded_rect.height = min(expanded_rect.height, img.rows - expanded_rect.y);
+
+    return expanded_rect;
+}
+
+
+#include <opencv2/opencv.hpp>
+
+template<typename T>
+cv::Mat zeroMainDiagonal(const cv::Mat& mat)
+{
+    cv::Mat result = mat.clone();
+    int n = min(result.rows, result.cols);
+    for (int i = 0; i < n; ++i)
+    {
+        result.at<T>(i, i) = 0;
+    }
+    return result;
+}
+
+
+
+class bv {
+public:
+	virtual void f() = 0; // 纯虚函数
+    virtual void f1() = 0; 
+
+};
+
+class sv_0 : public bv {
+
+public:
+	void f() override {
+		std::cout << "Derived class implementation of f()" << std::endl;
+	}
+
+	void f1() override {
+		std::cout << "Derived class implementation of f1()" << std::endl;
+	}
+};
+
+
+#if 1
+
+class sv_1 : public bv {
+
+public:
+    void f() override {
+        std::cout << "Derived class implementation of f()" << std::endl;
+    }
+
+
+};
 #endif 
 
-#endif 
+#endif
 
 
 
 
-//main_
-int main(int argc, char** argv)
+
+
+// main_
+int main(int argc, char **argv)
 {
 
     //  global var  //
-    
-    com& ec = s_com; 
-    ec.glo_init(argc, argv); 
-    ecl(string(argv[0])+ " start__"); 
 
+    com &ec = s_com;
+    ec.glo_init(argc, argv);
+    ecl(string(argv[0]) + " start__");
 
-    
-    //string dirname = "D:\\jd\\t\\platform_test_data\\";
+    // string dirname = "D:\\jd\\t\\platform_test_data\\";
 
-    //dirname = string("D:/jd/t/img_rgb_cmp/_309/sz_big/"); 
+    // dirname = string("D:/jd/t/img_rgb_cmp/_309/sz_big/");
     string fn_r0 = "d:/jd/t/rgb_10_12.jpg";
     cimg ci;
     cimg ci_0;
     cimg ci_1;
+    cimg ci_2;
+
     // -------- //
 
 #if 1
+
+    rex  ids("AB3C");
+
+    rex_match idm = m(R"(B)");
+
+    bool ism = ids % idm;
+    cout << ism << endl;
+
+    ids % s(R"(\d)", R"(__)");
+
+
+    cout << ids.str() << endl;
+
+
+    
+
+
+#endif 
+#if 0
+
+    unordered_map<int, int> mii = {
+        {0,0},
+        {1,11},
+		{2,22},
+    
+    };
+
+    cout << mii.at(3) << endl; 
+
+#endif 
+
+#if 0
+
+    string a = "STRING"; 
+
+    vector<string> vi; 
+	vi.push_back(std::move(a));
+
+    cout << "a:"<< a << endl;
+    cout << vi[0] << endl; 
+
+
+
+
+#endif 
+
+#if 0
+
+	unordered_map<int, int> m_i_i; // key: idx, value: <img, mask>
+
+    m_i_i[0] = 0; 
+    m_i_i[1] = 11; 
+	m_i_i[2] = 22;
+    m_i_i[1] = 111; 
+// cout m_i_i
+	cout << s_("m_i_i : {}", m_i_i) << endl;
+
+    int key = 2; 
+    if (m_i_i.find(key) != m_i_i.end())
+	{
+		cout << "m_i_i has key " << key << endl;
+	}
+	else
+	{
+		cout << "m_i_i has no key " << key << endl;
+	}
+
+
+
+
+	
+
+#endif 
+#if 0
+    sv_0 id_sv; 
+
+    id_sv.f1(); 
+    id_sv.f(); 
+
+#endif 
+#if 0
+    string fn = "D:/jd/t/t0/t0/img_hard_37_82.png"; 
+
+    ci.read_img(fn); 
+
+    ci.img = zeroMainDiagonal<v3b>(ci.img);
+    ci.s_i();
+
+
+
+
+
+
+#endif 
+
+
+#if 0
+    for (int i = 0; i < 4; i++)
+    {
+        
+        bool flag0 = false;
+        int input_number = i;
+
+        bool flag_rerun = false;
+
+    RE_RUN:
+        
+        if (flag0 == true)
+        {
+
+            flag0 = false; 
+
+            cout << "- RE_RUN " << endl; 
+
+            flag_rerun = true; 
+            input_number <<= 8;
+
+        }
+
+        vector<int> va; 
+
+        va.push_back(1); 
+
+        if (flag_rerun == false && input_number % 2)
+        {
+
+            flag0 = true; 
+			goto RE_RUN;
+
+        }
+
+
+		cout << "input_number:" << input_number << endl;
+
+
+        cout << s_("va is: {}", va); 
+
+    }
+
+    
+    assert(0 == 1);
+#endif 
+#if 0
+
+    vector<cv::Mat> vimgall; 
+    vector<string> vfn = ci.get_file_list("D:/jd/t/t0/t0/img_*.png"); 
+
+
+
+    static int cnt = 0; 
+    for (auto& efn : vfn)
+    {
+        string fn_img = efn; 
+        string fn_mask = ci.replace_str(efn, "img_", "mask_");
+
+        ci.read_img(fn_img); 
+        ci_0.read_img(fn_mask); 
+        ci_0.cvtcolor("RGB"); 
+
+
+        auto himg = ci.hconcat({ ci.img, ci_0.img });
+		vimgall.push_back(himg.clone());
+       
+        if (vimgall.size() % 30 == 0 && vimgall.size()>0)
+        {
+            auto imgallv = ci.vconcat(vimgall); 
+            cv::imwrite(s_("d:/jd/t/t0/t0/{}.png", cnt), imgallv); 
+            vimgall.clear();
+        }
+
+        cnt++;
+    }
+
+
+
+
+#endif 
+
+
+#if 0
+	string fn = "d:/jd/t/1.png";
+
+	cv::Rect bb = cv::Rect(100, 100, 300, 400);
+
+	ci.read_img(fn);
+	auto img_roi = ci.img(bb).clone();
+
+	auto bb_ = expand_rect(bb, 0.3, ci.img);
+	auto img_roi_ = ci.img(bb_).clone();
+
+	auto img_all = ci.hconcat({ img_roi, img_roi_ });
+
+	ci.img = img_all;
+	ci.s_i();
+
+
+
+
+#endif 
+
+
+
+#if 0
+
+
+#if 0
+    vector<string> vfn = {
+    "img_105_34_0.png", 
+    "img_104_44_0.png", 
+    "img_103_46_0.png",
+    "img_92_42_0.png",
+    "img_90_63_0.png",
+    "img_83_54_0.png",
+    "img_93_46_0.png",
+    "img_64_71_0.png",
+    "img_52_63_0.png",
+    "img_37_42_0.png",
+    "img_38_34_0.png",
+    "img_35_34_0.png",
+    };
+#endif 
+
+	struct fn_pv
+	{
+		string fn;
+		float rate;
+	};
+
+
+    vector<fn_pv> vfn_rate = {};
+	vector<string> vfn = ci.get_file_list("d:/jd/t/t0/t0/*.png");
+
+    for (auto& efn : vfn)
+    {
+        string fn = s_("{}", efn);
+
+		ci.read_img(fn);
+
+        cv::cvtColor(ci.img, ci.img, cv::COLOR_BGR2HSV);
+
+        std::vector<cv::Mat> v_img;
+        cv::split(ci.img, v_img);
+		ci.img = v_img[2]; // V channel
+
+		// ci.cvtcolor("GRAY");
+
+        auto p_roi_sum =  countPixelsRateOnLines(ci.img, 122);
+
+		//cout << s_("{}\t{}", efn, p_roi_sum) << endl;
+
+		//ecl(s_("{}\t{}", efn, p_roi_sum));
+    
+		vfn_rate.push_back({ efn, p_roi_sum });
+    }
+
+
+	// sort vfn_rate by rate 
+	std::sort(vfn_rate.begin(), vfn_rate.end(), [](const fn_pv& a, const fn_pv& b) {
+		return a.rate < b.rate;
+	});
+
+	for (auto& e : vfn_rate)
+	{
+		cout << s_("{}\t{}", e.fn, e.rate) << endl;
+        ecl(s_("{}\t{}", e.fn, e.rate));
+
+	}
+
+	
+#endif 
+
+
+#if 0
+    string fn = "d:/jd/t/2.jpg";
+    ci.read_img(fn); 
+
+    auto img_rgb_r0 = ci.img.clone();
+
+	ci.cvtcolor("GRAY");
+	ci.threshold(100);
+    ci.img = ~ci.img;
+
+
+    auto img_show = ci.find_contours();
+
+    auto con_all = ci.v_contours; 
+
+
+    for (auto & econ : con_all)
+    {
+		auto bb = boundingRect(econ);
+
+        if (bb.width < 10 && bb.height < 10)
+        {
+            continue;
+        }
+
+
+		auto img_roi = img_rgb_r0(bb).clone();
+
+        ci.s_i(img_roi); 
+
+
+       
+        ci_0.img = img_roi.clone(); 
+
+        ci_0.cvtcolor("GRAY"); 
+
+        ci_0.threshold(100);
+        ci_0.img = ~ci_0.img; 
+
+
+		auto img_roi_contour = ci_0.find_contours();
+		auto con_roi = ci_0.v_contours;
+
+
+       
+
+   
+
+
+        auto con_roi_bb = convert_roi_contours_to_big(con_roi, bb);
+
+
+		cout << con_roi_bb.size() << endl;
+
+
+        // cout << s_("{}",con_roi) << endl;
+
+
+
+
+
+
+
+    }
+
+
+    assert(0 == 1);
+
+    
+
+    ci_0.img = img_show; 
+
+    ci_0.s_i(); 
+
+
+
+    
+
+    // ci.s_i();
+
+#endif 
+
+#if 0
+    ci.read_img("d:/jd/t/git/images/analysis_result/isPicStandardBenchmark/middle/8_8_overlay_after_set_to_9_0.png");
+
+    ci.img; 
+    cout << ci.img.rows << endl; 
+#endif 
+
+#if 0
+    // ci.read_img("d:/jd/t/8_8_y_do_unmixy.jpg");
+    ci.read_img("d:/jd/t/8_8_rgb_org.jpg");
+
+    ci.img;
+    int w = 2464;
+    int h = 2056;
+    int rows = h;
+    int cols = w;
+
+    auto img_dst = ci.create_img_rc_chn(rows, cols, ci.img.channels());
+    img_dst.setTo(0);
+
+    // 平铺 ci.img 直到铺满 img_dst
+    TileImageToFill(ci.img, img_dst);
+
+    ci.img = img_dst; 
+    ci.s_i();
+
+    img_dst;
+	cv::imwrite("d:/jd/t/rgb.jpg", img_dst);
+
+#endif 
+#if 0
+    
+    int x = 0;
+
+    int t = 1 / x; 
+
+    map<string, string> m_s_s; 
+
+    m_s_s = {
+        {"a", "1"},
+        {"b", "2"},
+		{"c", "3"},
+		{"d", "4"}
+               
+    };
+    
+
+    cout << m_s_s.at("a") << endl;;
+
+#endif 
+#if 0
+
+	cv::Mat img = ci.create_img_rc_chn(600, 400, 1);
+
+    for (int i = 0; i < 22; i++)
+    {
+        for (int j = 0; j < 22; j++)
+        {
+            img.ptr<uchar3>(i)[j] = uchar3(0, 0, 0); 
+        }
+    }
+
+    auto img_old_size = img.size(); 
+
+    (img_old_size.width, img_old_size.height);
+    
+
+    auto pad_img = padToSquare(img); 
+
+
+	auto img_new =  reversePadTosquare(pad_img, img_old_size);
+
+    cout << 1 << endl;
+
+
+
+    // pad img to square 
+	// img_square = pad2square(img, cv::Scalar(0, 0, 0)); //TODO
+    // reverse size from img_square to old img 
+	// img = rev_pad2square(img_square,img_old_size); //TODO
+
+    
+  
+
+
+
+
+
+#endif 
+#if 0
+
+    ci.img = ci.create_img_rc_chn(200, 500, 3); 
+
+
+
+
+    ci.s_i(); 
+
+
+    for (int i=0;i<ci.img.dims;i++)
+	{
+		cout << ci.img.size[i] << " ";
+	}
+
+    cout << ci.img.size() << endl; 
+
+
+#endif 
+
+
+
+#if 0
+    string fn = "d:/jd/t/git/dna-analysis/images/analysis_result/DAcervicHard/middle/8_8_fill_binaryImage.jpg"; 
+
+    ci.read_img(fn);
+
+    ci.img = ci.img({ 300,300+568 }, { 600,600+1024 }); 
+
+    ci.resize(0.4); 
+    ci.s_i(); 
+
+
+    cv::imwrite("d:/jd/t/6.jpg", ci.img); 
+
+
+
+
+#if 0
+
+    auto img_rgb_r0 = ci.img.clone();  
+
+
+    ci.cvtcolor("GRAY");
+
+    auto img_gray = ci.img.clone(); 
+
+	auto img_avg_h2 = img_gray.clone();
+
+    ci.img = img_rgb_r0.clone(); 
+
+    std::vector<cv::Mat> v_img;
+    cv::split(ci.img, v_img);
+
+    for (int r = 0; r < ci.img.rows; r++)
+    {
+        for (int c = 0; c < ci.img.cols; c++)
+        {
+
+			vector<uchar> vuc = { v_img[0].ptr<uchar>(r)[c], v_img[1].ptr<uchar>(r)[c], v_img[2].ptr<uchar>(r)[c] };
+			std::sort(vuc.begin(), vuc.end());
+
+            auto max_p = vuc[2];
+            auto mid_p = vuc[1];
+            auto pavg = (max_p + mid_p) / 2;
+
+			
+
+			// 设置灰度图像的像素值
+            img_avg_h2.ptr<uchar>(r)[c] = pavg;
+
+        }
+    
+    }
+
+
+	// img_rgb_r0, img_gray, img_avg_h2
+
+    ci.img = img_rgb_r0.clone(); 
+    ci_0.img = img_gray.clone();  ci_0.cvtcolor("RGB"); 
+
+
+	auto img_av2_h2_c1 = img_avg_h2.clone();
+
+    
+
+
+
+	ci_1.img = img_avg_h2.clone(); ci_1.cvtcolor("RGB");
+
+
+
+
+
+    ci.resize(0.4);
+    ci_0.resize(0.4);
+    ci_1.resize(0.4);
+
+
+    vector<cv::Mat> vmats = { ci.img, ci_0.img, ci_1.img };
+    auto img_all = ci.vconcat(vmats, 11);
+
+	ci_2.img = img_all;
+    //ci_2.resize(0.6); 
+    ci_2.s_i(); 
+
+
+
+    int cnt = 0;
+    for (auto eimg : vmats)
+    {
+        ci.img = eimg; 
+        //ci.resize(0.5);
+		eimg = ci.img.clone();
+        // cv::imwrite(s_("d:/jd/t/{}.jpg", cnt), eimg);
+
+        cnt++;
+    }
+
+
+
+    ci.img = img_av2_h2_c1.clone(); 
+
+    ci.threshold(188); 
+
+    ci.img = ~ci.img;
+
+
+    auto img_cyto_mask = ci.img.clone(); 
+
+	ci_1.img = img_cyto_mask.clone();
+    ci_1.resize(0.4); 
+
+    cv::imwrite("d:/jd/t/4.jpg", ci_1.img); 
+
+
+
+    ci.img = ci.img & img_av2_h2_c1;
+
+
+    ci.resize(0.4);
+    cv::imwrite("d:/jd/t/5.jpg", ci.img);
+    
+
+
+    assert(0 == 1);
+
+
+
+
+
+
+
+
+    ci.resize(0.4);   ci.s_i();
+
+	cv::imwrite("d:/jd/t/3.jpg", ci.img);
+
+ 
+
+
+
+
+#endif 
+
+
+
+
+
+
+
+
+
+
+
+#endif 
+#if 0
+    string sa = "DTP2504092_00_04.jpg;10291;1;[3626, 392],[3624, 394],[3622, 394]"; 
+
+    auto loc = sa.find(";"); 
+    cout << loc << endl; 
+
+    cout << sa.substr(0, loc); 
+
+    auto t0 = GetTickCount64(); 
+    auto arr = searchAllComIdx();
+	float d = GetTickCount64() - t0;
+
+    cout_("{}, {}", arr, d/1000); 
+
+
+#endif 
+#if 0
+
+    string fn = "d:/jd/t/t0/20241223005_08_09_OUT.png"; 
+
+    ci.read_img(fn);
+
+    cout << ci.img << endl;
+
+
+
+
+#endif 
+#if 0
+
+     update_IsDNAIndexCaculated("D:/dnaana/meadata/Mea08010004.fea", false); 
+
+
+	 cout << get_IsDNAIndexCaculated("D:/dnaana/meadata/Mea08010004.fea") << endl;
+
+
+#endif 
+
+#if 0
+    string fn = "d:/jd/t/1.bmp";
+    ci.read_img(fn); 
+
+    ci.cvtcolor("GRAY");
+    
+    ci.img; 
+
+
+
+    cv::imwrite("d:/jd/t/1.png", ci.img);
+
+
+#endif 
+#if 0
+    string fn = "d:/jd/t/08_08_OUT.png"; 
+
+	ci.read_img(fn);
+	ci.img;
+    cout << 1 << endl; 
+
+    // count ci.img non-zero pixel number
+	int non_zero_cnt = 0;
+	for (int r = 0; r < ci.img.rows; r++)
+	{
+		for (int c = 0; c < ci.img.cols; c++)
+		{
+			auto& e = ci.img.ptr<uchar>(r)[c];
+			if (e > 0)
+			{
+				non_zero_cnt++;
+			}
+		}
+	}
+
+    cout << non_zero_cnt << endl; 
+
+
+#endif 
+#if 0
+	string fn = "d:/jd/t/t1/1.jpg";
+
+
+   
+	ci.read_img(fn);
+
+    ci.img;
+
+
+    ci.cvtcolor("GRAY");
+
+
+
+
+    ci.threshold(88, 255); 
+
+
+    
+
+	
+
+
+    uchar old = ci.img.ptr<uchar>(0)[0];
+// loop ci.img 
+    int cnt = 0;
+    int sum = 0;
+
+    int cnt_break = 0;
+	for (int r = 0; r < ci.img.rows; r++)
+	{
+        for (int c = 0; c < ci.img.cols; c++)
+        {
+
+            sum++;
+            cnt++;
+            if (r == 0 && c == 0)
+            {
+                continue;
+            }
+
+
+            auto& e = ci.img.ptr<uchar>(r)[c];
+
+            if (e != old)
+            {
+                // cout << r << ":" << c << endl; 
+                if (e > 0 )
+                {
+                    cout << sum << ",";
+                }
+                else
+                {
+                    cout << cnt << ",";
+
+                }
+
+                cnt_break++;
+
+
+                
+               
+                cnt = 0;
+                old = e;
+
+
+          
+            }
+
+      
+
+            if (cnt_break > 10) break;
+        }
+
+        if (cnt_break > 10) break;
+			
+
+   
+	
+
+	}
+
+       
+
+	
+
+	
+
+	//ci.s_i(); 
+	//ci.img; 
+	//cout << ci.img.size << endl;
+
+
+
+
+#endif 
+#if 0
+
+    string view_jpg = "07_08.jpg";
+
+    string fn = "d:/jd/t/t0/tilejpg/" + view_jpg;
+    ci.read_img(fn);
+    ci.img;
+
+
+    string fn_list = "d:/jd/t/t0/tilejpg/fn_list.txt";
+
+
+    std::vector<std::vector<cv::Point2i>> vvp = readPointsFromFile(fn_list, view_jpg);
+
+
+    // ci.img.setTo(0); 
+
+    // ci.img *= 0.25;
+    // draw vvp on ci.img 
+    for (auto& e : vvp)
+    {
+        for (auto& e1 : e)
+        {
+            cv::circle(ci.img, e1, 2, cv::Scalar(255, 0, 0), -1);
+        }
+    }
+
+    // 
+
+
+
+
+
+
+
+
+
+
+    //ci.resize(0.231);
+    cv::imwrite("d:/jd/t/t0/1.jpg", ci.img); 
+
+
+    //ci.s_i(); 
+
+    ci.img;
+    //cout << ci.img.size << endl; 
+
+
+#endif 
+
+#if 0
+    // read fn 
+
+
+    string tfn = "d:/jd/t/lena.bmp";
+
+    ci.read_img(tfn); 
+
+    ci.img; 
+
+
+
+    int N = 10;
+
+       vector<Mat> vimg; // 修复：将函数声明改为变量定义
+
+       for (int e : ci.R(0, N)) // 使用 std::views::iota 生成范围
+       {
+           cout << e << endl;
+           auto e_fn = s_("d:/jd/t/p/masked_{}.png", e);
+
+           ci.read_img(e_fn); 
+
+           vimg.push_back(ci.img.clone()); // 确保 vimg 是一个有效的 vector
+       }
+
+
+
+       // merge all vimg
+	   cv::Mat img_sum = cv::Mat::zeros(ci.img.size(), ci.img.type());
+	   for (int i = 0; i < vimg.size(); i++)
+	   {
+		   img_sum += vimg[i]/N;
+	   }
+
+	   // img_sum = img_sum * split_num; 
+
+       img_sum = ~img_sum; 
+
+
+       // use min_max to change img_sum to be 0~255
+	   double minVal, maxVal;
+	   cv::minMaxLoc(img_sum, &minVal, &maxVal);
+	   // img_sum.convertTo(img_sum, CV_8UC3, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
+	   img_sum = img_sum * 255.0 / (maxVal - minVal);
+
+
+	   ci.s_i(img_sum);
+
+	   // ci.s_i(); 
+	   // ci.img; 
+	   // cout << ci.img.size << endl;
+
+#endif 
+#if 0
+    string fn = "d:/jd/t/lena.bmp"; 
+
+    ci.read_img(fn); 
+
+
+    auto img_r1 = ci.img.clone(); 
+
+	// rotate img_r1 180 degree 
+	cv::Mat img_r2;
+	cv::rotate(img_r1, img_r2, cv::ROTATE_180);
+
+
+    ci.s_i(img_r2); 
+    assert(0 == 1);
+
+    
+    vector<cv::Mat> vmat; 
+
+    int split_num = 11;
+	cv::Mat img_r0 = ci.img.clone();
+
+    for (int id = 0; id < split_num; id++)
+    {
+        // for each pixel in ci.img , gray++;
+        for (int r = 0; r < ci.img.rows; r++)
+        {
+            for (int c = 0; c < ci.img.cols; c++)
+            {
+                auto& e = ci.img.ptr<cv::Vec3b>(r)[c];
+
+                if ((r * ci.img.step + c) % split_num == id)
+                {
+                    
+                    
+                }
+                else
+                {
+                    e = { 0,0,0 };
+                }
+
+            }
+        }
+
+        vmat.push_back(ci.img.clone()); 
+
+
+		cv::imwrite(to_string(id) + ".jpg", ci.img);
+
+        ci.img = img_r0.clone();;
+
+
+    }
+
+
+
+
+	// add all imgs in vmat
+	cv::Mat img_sum = cv::Mat::zeros(ci.img.size(), ci.img.type());
+	for (int i = 0; i < vmat.size(); i++)
+	{
+		img_sum += vmat[i];
+	}
+
+    //img_sum = img_sum * split_num; 
+
+    ci.s_i(img_sum); 
+
+
+
+
+
+#endif 
+
+
+
+
+#if 0
+
+    // create a example of fArray_DiPloid, float type
+	std::vector<float> fArray_DiPloid = { 1.1, 2.1,  };
+	fArray_DiPloid.push_back(3.1);
+	fArray_DiPloid.push_back(4.1);
+	fArray_DiPloid.push_back(5.1);
+	fArray_DiPloid.push_back(6.1);
+	fArray_DiPloid.push_back(7.1);
+	fArray_DiPloid.push_back(8.1);
+	fArray_DiPloid.push_back(9.1);
+	fArray_DiPloid.push_back(10.1);
+
+	// calculate mean of fArray_DiPloid
+	float sum = 0;
+	for (auto& e : fArray_DiPloid)
+	{
+		sum += e;
+	}
+	float mean = sum / fArray_DiPloid.size();
+
+	
+	
+
+
+
+#endif 
+#if 0
+
+    enum CellClassType
+    {
+        UNKNOW_CELL = 0,
+        NORMAL_CELL = 1,
+        PYKNOTIC_CELL = 2,
+        WBC_CELL = 3,
+        IMPURITY_CELL = 4,
+        NAKED_CELL = -1
+    };
+
+	
+
+    int t0 = -11;
+
+    CellClassType e = (CellClassType)t0; 
+
+	cout << e << endl;
+
+    
+
+
+#endif 
+#if 0
+	auto img = ci.create_img_rc_chn(101, 101, 1);
+auto step = img.step[0]; // 修复为获取第一通道的步幅
+
+cout << step << endl;
+
+// get widthstep for img 
+int widthstep = img.step; // 修复为获取第一通道的步幅
+
+int ws = img.step[0];
+
+
+uchar* pdata = img.data; 
+
+
+for (int i = 0; i < 101; i++)
+{
+	for(int j=0;j<101;j++)
+	{
+		pdata[i * ws + j] = i + j; 
+	}
+}
+
+
+
+
+
+#endif 
+#if 0
+    string fn = "d:/jd/t/git/dna-analysis/images/analysis_result/DTA0004/middle/10_7_rgb_org.jpg"; 
+	ci.read_img(fn);
+
+    // smooth ci.img 
+	cv::GaussianBlur(ci.img, ci.img, cv::Size(5, 5), 0, 0);
+    
+
+    auto bgr = ci.img.clone(); 
+
+
+	
+
+	cv::Mat img_gray = toGrayByStripMin(bgr);
+
+	//ci.s_i(img_gray);
+
+	
+	auto p_con_roi = findCellClusterContour(img_gray);
+
+	auto img_contour = p_con_roi.first.clone();
+
+	auto bgrcp = bgr.clone();
+	// show contour on bgr
+	cv::drawContours(bgrcp, p_con_roi.second, -1, cv::Scalar(0, 0, 255), 1);
+    // save bgrcp
+	cv::imwrite("d:/jd/t/t0/10_7_rgb_org_contour.jpg", bgrcp);
+
+    int bg[4] = { 0 };
+    doCurrentBackground(img_gray, bg);
+
+
+    ci.img = img_gray.clone();
+	
+    cv::threshold(ci.img, ci.img, 161, 255, cv::THRESH_BINARY);
+
+    
+
+    ci.img = ~ci.img; 
+
+
+	ci.find_contours();
+
+    ci.v_contours;
+	auto ci_v_contours_cp = ci.v_contours;
+
+	// filter ci.v_contours by area
+	ci.v_contours.clear();
+	for (auto& e : ci_v_contours_cp)
+	{
+		auto area = cv::contourArea(e);
+		if (area > 600)
+		{
+
+			// push convexhull of e to ci.v_contours
+			std::vector<cv::Point> e_;
+			cv::convexHull(e, e_);
+			ci.v_contours.push_back(e_);
+		}
+	}
+
+	// draw p_con_roi.second  and ci.v_contours on bgrcp , use different color
+	
+
+
+
+    bgrcp = bgr.clone();
+
+    // draw p_con_roi.second  and ci.v_contours on bgrcp , use different color 
+	cv::drawContours(bgrcp, p_con_roi.second, -1, cv::Scalar(0, 0, 255), 3);
+	cv::drawContours(bgrcp, ci.v_contours, -1, cv::Scalar(0, 255, 0), 3);
+
+	// save bgrcp
+	cv::imwrite("d:/jd/t/t0/10_7_rgb_org_contour_ci.jpg", bgrcp);
+
+
+
+
+	
+ 
+    std::vector<std::vector<cv::Point>> vsmall;
+    std::vector<std::vector<cv::Point>> vbig;
+
+
+	//// for each pair ele in p_con_roi.second   ci.v_contours, assess the overlap ratio
+    for (auto& esmall : p_con_roi.second)
+    {
+        for (auto& ebig : ci.v_contours)
+        {
+            auto ifSame = IsContourBeTheSame(esmall, ebig);
+
+            if (ifSame == true)
+			{
+				vsmall.push_back(esmall);
+				vbig.push_back(ebig);
+            }
+        }
+    }
+
+    bgrcp = bgr.clone();
+
+    // draw p_con_roi.second  and ci.v_contours on bgrcp , use different color 
+    cv::drawContours(bgrcp, vsmall, -1, cv::Scalar(0, 0, 255), 3);
+    cv::drawContours(bgrcp, vbig, -1, cv::Scalar(0, 255, 0), 3);
+
+    // save bgrcp
+    cv::imwrite("d:/jd/t/t0/thesame_big_small.jpg", bgrcp);
+	// ci.s_i();
+
+
+
+
+
+
+
+
+       
+
+
+
+
+
+
+
+
+
+
+#endif 
+#if 0
+
+    char id_buf[7] = { 0 };
+    auto len_ = sprintf_s(id_buf, sizeof(id_buf), "%06d", atoi("12"));
+    // sprintf(id_buf, "%06d", "1");
+
+    cout << id_buf << endl; 
+
+
+#endif 
+
+#if 0
+    vector<int> vi{ 1,2,34 }; 
+    auto vicp = vi; 
+    vi[0] += 999; 
+    vi.push_back(-999); 
+
+
+
+    cout_("{}, {}", vicp, vi); 
+
+    vi.pop_back(); 
+
+    cout_("{}, {}", vicp, vi);
+
+#endif 
+#if 0
+
+    int x = 3000; 
+    int y = 3000; 
+
+    auto xy = (x << 10) + y;
+    cout << xy << endl; 
+    assert(0 == 1);
+#endif 
+
+
+#if 0
+    int rows = 1232;
+    int cols = 1760;
+
+#if 1
+    ci.read_bin_to_mat("d:/jd/t/t0/1.dat", rows, cols, 4);
+    cv::imwrite("d:/jd/t/t0/1.png", ci.img); 
+
+    auto img_bak = ci.img.clone(); 
+
+    ci.s_i();
+
+#endif 
+
+  ci.read_bin_to_mat("d:/jd/t/t0/2.dat", rows, cols, 4);
+
+
+
+
+
+    cv::imwrite("d:/jd/t/t0/2.png", ci.img);
+
+    ci.s_i();
+
+
+#endif
+
+#if 0
+
+    vector<cv::Mat> v_img; 
+
+
+    assert(argc == 2); 
+
+    string fn_all_jpg = string(argv[1]);
+
+
+
+    auto vstr = ci.read_txt_to_vec_str(fn_all_jpg);
+
+
+    
+
+    for (auto fn : ci.filter_out_vstr(vstr, R"(^#.*)"))
+    {
+
+        // string fn = "d:/jd/t/t0/7_12_rgb_org_group.jpg";
+
+
+        cout << fn << endl;
+
+
+
+
+        ci.read_img(fn);
+
+        std::filesystem::path path(fn);
+        string fn_new = "d:/jd/t/t0/cervic_" + path.filename().string();
+
+        cv::GaussianBlur(ci.img, ci.img, cv::Size(3, 3), 0, 0);
+
+        auto bgr_r0 = ci.img.clone();
+
+
+        auto gray = toGrayByStripMin(ci.img);
+
+        auto p_con_roi = findCellClusterContour(gray);
+
+        cout << p_con_roi.first.rows << ":" << p_con_roi.second.size() << endl;
+
+        gray = p_con_roi.first; 
+        v_img.push_back(gray.clone()); 
+
+
+
+        // Return the filename without the extension (if needed)  
+        // You can also use path.filename().string() if you want the extension  
+       
+
+       
+
+        cv::imwrite(fn_new, gray); 
+
+
+    }
+
+
+
+
+
+
+
+
+#endif 
+#if 0
+
+     // 示例轮廓  
+    std::vector<Point> contour = {
+        Point(100, 100), Point(200, 100),
+        Point(200, 200), Point(100, 222),  Point(100, 100),
+    };
+
+    vector< std::vector<Point>> v_contours {contour}; 
+
+
+    test_const_contour(v_contours); 
+
+
+    // 进行轮廓收缩  
+    std::vector<Point> shrunkenContour = shrinkC(contour,0.3);
+
+    // 在图像上绘制原始和收缩后的轮廓  
+    Mat image = Mat::zeros(300, 300, CV_8UC3);
+
+
+    
+    cv::drawContours(image, v_contours, -1, Scalar(255, 0, 0), cv::FILLED); // 原始轮廓  
+
+    // 绘制收缩后的轮廓  
+    // polylines(image, shrunkenContour, true, Scalar(0, 255, 0), 2); // 收缩后轮廓  
+
+
+    ci.s_i(image);
+
+#endif 
+
+#if 0
+    string fn = "d:/jd/t/t0/7_12_rgb_org_group.jpg";
+    ci.read_img(fn);
+
+    cv::GaussianBlur(ci.img, ci.img, cv::Size(3, 3), 0, 0);
+
+    auto bgr_r0 = ci.img.clone();
+
+
+    auto gray = toGrayByStripMin(ci.img);
+ 
+    auto gray_r0 = gray.clone(); 
+
+    ci.img = gray;
+
+    int step_r = 32; 
+    
+    int step_c = step_r;
+
+    int overlap = step_r / 2; 
+    int thres_bg = 191; 
+    int thres = 80; 
+    int thres_cnt_roi = 100; 
+    int thres_area = 10000; 
+
+    
+
+    int size_e_row = 32; 
+
+    struct bb_cnt
+    {
+        cv::Rect bb; 
+        int cnt; 
+        int row;
+        int col;
+
+    }; 
+
+    vector< bb_cnt > v_bb_cnt; 
+
+
+    int row_cut = 0;
+
+    for (int r = 0; r < ci.img.rows - step_r; r += (step_r - overlap))
+    {
+        int col_cut = 0; 
+        for (int c = 0; c < ci.img.cols-step_c; c += (step_c - overlap))
+        {
+
+
+            cv::Rect bb = cv::Rect(c, r, step_c, step_r); 
+
+            cv::Mat img_roi = gray_r0(bb).clone(); 
+
+            
+
+     
+            int cnt = 0;
+            int cnt_bg = 1; 
+            img_roi.forEach<uchar>(
+            [&thres,&thres_bg, &cnt, &cnt_bg](uchar& pixel, const int* position)
+            {
+                //if (pixel < thres_bg) 
+                //{
+                //    cnt_bg++;
+                //}
+
+                if (pixel < thres)
+                {
+                    cnt++;
+                }
+
+
+                
+            });
+
+            // cnt = cnt;
+
+            if (cnt > thres_cnt_roi)
+            {
+
+                bb_cnt e_bb_cnt = { bb, cnt, row_cut, col_cut };
+                v_bb_cnt.push_back(e_bb_cnt);
+                
+            }
+
+
+            cv::Point center = cv::Point(bb.x + bb.width / 2-10, bb.y + bb.height / 2);
+
+            putText(ci.img, to_string(cnt),
+                center, FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar::all(0), 2);
+
+
+            // draw a rectange on bb 
+            // 在适当的位置添加绘制矩形的代码
+            // cv::rectangle(ci.img, bb, cv::Scalar(0, 0, 0), 1); // 使用红色绘制矩形
+
+            col_cut++;
+        }
+
+        row_cut++;
+    }
+
+
+    
+
+    cv::imwrite("d:/jd/t/t0/1.png", ci.img); 
+
+   
+
+
+    std::sort(v_bb_cnt.begin(), v_bb_cnt.end(), [](const bb_cnt& a, const bb_cnt& b) {
+        return (a.cnt>b.cnt);
+    });
+
+
+    //vector<cv::Mat> vimg; 
+
+
+    //vector<cv::Mat> v_res; 
+
+    //for (auto e_bb_cnt: v_bb_cnt)
+    //{
+
+    //    cv::Mat img_roi = ci.img(e_bb_cnt.bb);
+
+    //    vimg.push_back(img_roi); 
+
+    //    if (vimg.size() == size_e_row)
+    //    {
+    //        auto img_all = ci.hconcat(vimg, 4); 
+    //        // ci.s_i(img_all); 
+
+    //        v_res.push_back(img_all); 
+
+
+    //        vimg.clear(); 
+    //    }
+
+    //}
+
+
+    //auto img_res = ci.vconcat(v_res); 
+
+    //cv::imwrite("d:/jd/t/t0/2.png", img_res); 
+
+    ci.img = gray_r0.clone();
+
+    vector< bb_cnt > v_bb_cnt_roi;
+
+    v_bb_cnt_roi = v_bb_cnt; 
+
+    //for (auto e_bb_cnt : v_bb_cnt)
+    //{
+    //    if (e_bb_cnt.cnt > thres_cnt_roi)
+    //    {
+    //        v_bb_cnt_roi.push_back(e_bb_cnt);
+    //    }
+    //}
+
+
+    for (auto e_bb_cnt : v_bb_cnt_roi)
+    {
+        auto bb = e_bb_cnt.bb; 
+        cv::Point center = cv::Point(bb.x + bb.width / 2 - 10, bb.y + bb.height / 2);
+
+        // putText(ci.img, to_string(e_bb_cnt.cnt), center, FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar::all(0), 2);
+
+        // cv::rectangle(ci.img, bb, cv::Scalar(0, 0, 0), 1); // 使用红色绘制矩形
+        // draw rectangle and filled with 255
+        cv::rectangle(ci.img, bb, cv::Scalar(255), cv::FILLED);
+
+
+    }
+
+
+    // ci.threshold(254); 
+
+    cv::threshold(img, img, 254, 255, cv::THRESH_BINARY);
+
+    // ci.img; 
+
+    // 对图ci.img 做一次开运算。
+    //int kernelSize = 7;
+    //cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(kernelSize, kernelSize));
+    //// 开运算
+    //cv::morphologyEx(ci.img, ci.img, cv::MORPH_OPEN, element);
+    //cv::morphologyEx(ci.img, ci.img, cv::MORPH_OPEN, element);
+    //cv::morphologyEx(ci.img, ci.img, cv::MORPH_OPEN, element);
+
+    cv::findContours(img, v_contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+
+    ci.find_contours(255);
+    ci.v_contours;
+
+    struct con_area
+    {
+        std::vector<cv::Point> e_c;
+        int area;
+    }; 
+
+
+    vector<con_area> v_con_area;
+    vector<std::vector<cv::Point>> v_con_roi;
+
+    for (auto& e_c : ci.v_contours)
+    {
+        auto area = cv::contourArea(e_c);
+        con_area e_con_area = {e_c, area};
+
+        v_con_area.push_back(e_con_area); 
+
+    }
+
+
+    // sort by v_con_area.area
+    std::sort(v_con_area.begin(), v_con_area.end(), [](const auto& a, const auto& b) {
+        return a.area > b.area; // or any other comparison logic based on area
+    });
+
+    
+    for (auto e_con_area : v_con_area)
+    {
+        if (e_con_area.area > thres_area)
+        {
+            std::vector<cv::Point> e_c;
+            
+            cv::convexHull(e_con_area.e_c, e_c);
+
+            v_con_roi.push_back(e_c);
+        }
+    }
+
+
+
+
+    ci.img = gray_r0.clone(); 
+
+    // draw contour on ci.img 
+    //img_contour_line = cv::Mat::zeros(img.size(), CV_8UC1);;
+    cv::drawContours(ci.img, v_con_roi, -1, cv::Scalar(255), 3);
+    
+
+    cv::imwrite("d:/jd/t/t0/3.png", ci.img); 
+
+    ci.resize(0.5);
+    ci.s_i();
+    
+
+
+
+
+
+
+
+
+
+#endif 
+#if 0
+    string fn = "d:/jd/t/t0/7_12_rgb_org_group.jpg";
+    ci.read_img(fn);
+
+	// auto bgr_r0 = ci.img.clone();
+
+
+    cv::GaussianBlur(ci.img, ci.img, cv::Size(5, 5), 0, 0);
+
+    auto bgr_r0 = ci.img.clone();
+
+
+    auto gray = toGrayByStripMin(ci.img);
+    ci.img = gray;
+
+
+
+
+    // get mean of ci.img
+    auto mean_img = cv::mean(ci.img);
+
+
+
+    auto gray_r0 = ci.img.clone();
+    int thres = mean_img[0];
+    ci.threshold(thres, 255);
+
+    ci.img = ~ci.img;
+
+
+    auto img_copy = ci.img.clone(); 
+
+  
+
+    ci.find_contours();
+
+    ci.v_contours; 
+
+    ci.img_contour_mask; 
+    
+
+    struct con_feature
+    {
+        std::vector<cv::Point>* p_ec;
+        int area;
+    };
+
+
+	vector<con_feature> v_con_feature;
+    for (auto& ec : ci.v_contours)
+    {
+		con_feature e_con_feature = { &ec, cv::contourArea(ec) };
+
+		v_con_feature.push_back(e_con_feature);
+
+    
+    }
+
+
+	std::sort(v_con_feature.begin(), v_con_feature.end(), [](const con_feature& a, const con_feature& b) {
+		return a.area > b.area; // Assuming 'ep' is a member of the elements in vpxy
+	});
+
+
+
+
+    vector<int> v_area;
+	for (auto& e : v_con_feature)
+	{
+        if (e.area>9)
+        {
+            v_area.push_back(e.area);
+        }
+	}
+
+    vector<std::vector<cv::Point>> v_con_roi;
+
+    for (int i = 0; i < v_con_feature.size()/2; i++)
+    {
+        v_con_roi.push_back(*(v_con_feature[i].p_ec));
+    }
+
+
+    vector<cv::Mat> vimg; 
+    vector<cv::Mat> vimg_r0; 
+
+    
+    for (auto& ec : v_con_roi)
+    {
+
+
+		// clone_contour_bb(gray_r0, ec);
+        auto img_mask_t = ci.img_contour_mask.clone().setTo(0);
+		cv::drawContours(img_mask_t, std::vector<std::vector<cv::Point>>{ec}, -1, cv::Scalar(255), cv::FILLED);
+
+		auto bb = cv::boundingRect(ec);
+
+
+        cv::Mat eimg_roi = gray_r0(bb) & img_mask_t(bb);
+
+        cv::GaussianBlur(eimg_roi, eimg_roi, cv::Size(5, 5), 0, 0);
+
+       // cv::GaussianBlur(eimg_roi, eimg_roi, cv::Size(5, 5), 0, 0);
+
+        cv::GaussianBlur(eimg_roi, eimg_roi, cv::Size(5, 5), 0, 0);
+
+        
+
+
+
+        auto eimg_roi_ = img_min_nonzero(eimg_roi); 
+        cv::Mat dst;
+
+        cv::Mat eimg_roi__;
+
+        cv::rotate(eimg_roi, dst, cv::ROTATE_90_CLOCKWISE);
+        dst = img_min_nonzero(dst);
+        cv::rotate(dst, eimg_roi__, cv::ROTATE_90_COUNTERCLOCKWISE);
+
+        eimg_roi_ = eimg_roi_ & eimg_roi__; 
+
+        // rotate eimg_roi 90 degree 
+
+
+        cv::Mat img_t = eimg_roi * 0.7 + eimg_roi_ * 0.3;
+
+        vimg.push_back(img_t); 
+
+        
+        vimg_r0.push_back(gray_r0(bb));
+
+
+
+
+        if (vimg.size() == 8)
+        {
+            ci.img = ci.hconcat(vimg, 2); 
+            auto ci_img_edit = ci.img.clone(); 
+            ci.img = ci.hconcat(vimg_r0, 2); 
+
+            ci.img = ci.vconcat({ ci_img_edit, ci.img }, 0);
+
+            ci.s_i();
+
+            
+
+            vimg.clear(); 
+            vimg_r0.clear(); 
+        }
+
+
+
+
+
+            
+
+    }
+
+
+
+	//draw v_con_roi
+    
+
+    cv::Mat img_mask = cv::Mat::zeros(ci.img.size(), CV_8UC1);
+    cv::drawContours(img_mask, v_con_roi, -1, cv::Scalar(255), cv::FILLED);
+
+	cv::imwrite("d:/jd/t/t0/img_mask.png", img_mask);
+    
+
+
+
+ //   cv::imwrite("d:/jd/t/t0/bin.png", ci.img);
+
+
+ //   auto binimg = ci.img.clone(); 
+
+
+
+ //   
+
+ //   
+ //   vector<cv::Mat> vchn = { binimg, binimg, binimg};
+ //   cv::merge(vchn, binimg);
+
+
+	//cv::Mat img_r0_bin = bgr_r0*0.5 +  binimg *0.5;
+
+	//cv::imwrite("d:/jd/t/t0/img_r0_bin.png", img_r0_bin);
+
+
+
+
+
+
+
+    
+
+#endif 
+
+#if 0
+    float f = 0.35;
+    string fn = "d:/jd/t/git/dna-analysis/images/analysis_result/DAcervicHard/middle/1.txt"; 
+
+    auto vfn = ci.read_txt_to_vec_str(fn);
+    for (auto efn : vfn)
+    {
+		auto efn_new = ci.replace_str(efn, "middle", "middle_new");   
+     
+        ci.read_img(efn);
+        auto idx = efn.find_last_of("\\");
+		auto puttext_ =  efn.substr(idx+1);
+
+		if (puttext_.find("10_9") == string::npos)
+		{
+            continue;
+		}
+
+        ci.resize(f);
+        ci.puttext(puttext_+ "_old");
+       
+		auto img = ci.img.clone();
+		ci.read_img(efn_new);
+        ci.resize(f);
+        ci.puttext(puttext_ + "new");
+		auto img_new = ci.img.clone();
+
+	
+		ci.img = ci.hconcat({ img, img_new }, 4);
+
+    
+        cv::imwrite("d:/jd/t/t0/1.png",ci.img);
+        ci.s_i();
+       
+
+
+
+        
+    }
+
+
+#endif 
+#if 0
+    std::vector<Point> c0 = {
+          Point(100, 100), Point(300, 100), Point(350, 200), Point(50, 200)
+    };
+
+    // 定义直线 y0 的值  
+    float y0 = 150.0; // 传入的 y 坐标值  
+
+    // 计算交点  
+    std::vector<Point2f> intersectionPoints = getIntersectionPoints(c0, y0);
+
+    // 输出交点  
+    std::cout << "Intersection Points with line y = " << y0 << ":\n";
+    for (const auto& point : intersectionPoints) {
+        std::cout << "Point: (" << point.x << ", " << point.y << ")\n";
+    }
+
+#endif 
+
+
+#if 0
+
+	string fn_bgr = "d:/jd/t/t0/cervicHard.jpg";
+    ci.read_img(fn_bgr);
+
+    auto bgr_r0 = ci.img.clone(); 
+
+	string fn = "d:/jd/t/t0/img_r0_gray.png";
+
+	ci.read_img(fn);
+
+    auto img_r0 = ci.img.clone(); 
+
+	string fn_mask = "d:/jd/t/t0/img_contour_mask_ok.png";
+	ci.read_img(fn_mask);
+    ci.threshold(254);
+    ci.find_contours(); 
+
+    ci.v_contours;
+
+	auto imgmean = ci.create_img_rc_chn(1,ci.v_contours.size(), 1);
+    vector<int> vmean;
+    int cnt = 0; 
+
+
+
+
+	vector<para_con> v_para_con;
+
+    
+
+    for (auto & e_c : ci.v_contours)
+    {
+        cv::Moments m = cv::moments(e_c);
+        cv::Point center(int(m.m10 / m.m00), int(m.m01 / m.m00));
+
+        int cenp_i = 0;
+        for (int k = -2; k < 2; k++)
+        {
+            cenp_i += img_r0.ptr<uchar>(center.y)[center.x + k];
+
+        }
+        cenp_i /= 5;
+		uchar cenp = cenp_i;
+
+		para_con e_para_con = { cenp_i, 0, &e_c };
+		v_para_con.push_back(e_para_con);
+        
+		imgmean.ptr<uchar>(0)[cnt] = cenp;
+		vmean.push_back(cenp);
+        cnt++;
+    }
+
+
+   
+
+
+    auto meanv = cv::mean(imgmean);
+
+    cout << meanv << endl; 
+
+    vector<int> hist(256, 0);
+
+    for (auto& e : vmean)
+    {
+        hist[e]++;
+    }
+
+    auto pimg = ci.P(hist, 1); 
+
+
+    pimg; 
+
+    // find max element location  in hist 
+    int max_loc = 0;
+    int maxv = 0;
+    for (int i = 0; i < hist.size(); i++)
+    {
+		if (hist[i] > maxv)
+		{
+			maxv = hist[i];
+			max_loc = i;
+		}
+	}
+
+	
+    cout << maxv << ":" << max_loc << endl; 
+
+    
+    int filter_cenv_thres = max_loc + 65;  // about 107 ?
+
+
+    std::vector<std::vector<cv::Point>> v_contour_t;
+	for (auto& e : v_para_con)
+	{
+		if (e.cen_avg > filter_cenv_thres)
+		{
+			e.flag_filterout = 1;
+            continue; 
+		}
+
+		v_contour_t.push_back(*e.p_e_c);
+	}
+
+    
+	cv::Mat img_contour_line = cv::Mat::zeros(ci.img.size(), CV_8UC1);
+
+	
+
+    
+    cv::drawContours(img_contour_line, v_contour_t, -1, cv::Scalar(255), 1);
+    
+
+	cv::Mat img_contour_line_bgr;
+
+	vector<cv::Mat> vchn = { img_contour_line, img_contour_line, img_contour_line };
+    cv::merge(vchn, img_contour_line_bgr);
+
+
+    img_contour_line_bgr = img_contour_line_bgr * 0.7 + bgr_r0 * 0.3;
+	cv::imwrite("d:/jd/t/t0/img_contour_line_filter_c.png", img_contour_line_bgr);
+
+
+
+#endif 
+
+#if 0
+    string fn = "d:/jd/t/t0/cervicHard.jpg";
+    ci.read_img(fn);
+
+
+    cv::GaussianBlur(ci.img, ci.img, cv::Size(3, 3), 0, 0);
+
+    auto bgr_r0 = ci.img.clone();
+
+
+    auto gray = toGrayByStripMin(ci.img);
+    ci.img = gray;
+
+
+
+
+    // get mean of ci.img
+    auto mean_img = cv::mean(ci.img);
+
+
+
+    auto img_r0 = ci.img.clone();
+    int thres = mean_img[0];
+    ci.threshold(thres, 255);
+
+    ci.img = ~ci.img;
+
+
+    cv::imwrite("d:/jd/t/t0/bin.png", ci.img);
+
+
+
+
+    ci.img = ci.find_contours();
+
+    ci.v_contours;
+    ci.img_contour_mask;
+
+
+    std::vector<cv::Mat> channels;
+    cv::split(bgr_r0, channels);
+
+    for (auto& echn : channels)
+    {
+        echn = echn & ci.img_contour_mask;
+    }
+    // 计算每个通道的梯度幅值
+    std::vector<cv::Mat> gradientMagnitudes;
+    for (const auto& channel : channels) {
+        cv::Mat Gx, Gy;
+        cv::Sobel(channel, Gx, CV_64F, 1, 0, 9, 5.0); // 水平方向梯度
+        cv::Sobel(channel, Gy, CV_64F, 0, 1, 9, 5.0); // 垂直方向梯度
+        cv::Mat gradientMagnitude;
+        cv::magnitude(Gx, Gy, gradientMagnitude);
+        gradientMagnitudes.push_back(gradientMagnitude);
+    }
+
+
+
+    cv::normalize(gradientMagnitudes[0], gradientMagnitudes[0], 0, 255, cv::NORM_MINMAX, CV_8U);
+    cv::normalize(gradientMagnitudes[1], gradientMagnitudes[1], 0, 255, cv::NORM_MINMAX, CV_8U);
+    cv::normalize(gradientMagnitudes[2], gradientMagnitudes[2], 0, 255, cv::NORM_MINMAX, CV_8U);
+
+
+
+    // 取梯度, 取其中最大值 * 3
+    cv::Mat gradientMagnitude;
+    (cv::max)(gradientMagnitudes[0], gradientMagnitudes[1], gradientMagnitude);
+    (cv::max)(gradientMagnitude, gradientMagnitudes[2], gradientMagnitude);
+    cv::multiply(gradientMagnitude, 3, gradientMagnitude);
+
+
+    cv::imwrite("d:/jd/t/t0/gradientMagnitude.png", gradientMagnitude);
+
+
+
+    std::vector<std::vector<cv::Point>> contours;
+
+    cv::Mat binaryImage;
+
+    for (int i = 70; i <= 150; i += 20)
+    {
+        // 二值化
+        cv::threshold(gradientMagnitude, binaryImage, i, 255, cv::THRESH_BINARY);
+
+
+        cv::imwrite("d:/jd/t/t0/binaryImage" + to_string(i) + ".png", binaryImage);
+
+        // context->saveMiddleImg(binaryImage, "binaryImage" + TC_Common::tostr(i) + ".jpg");
+        // 轮廓检测
+        std::vector<std::vector<cv::Point>> contoursThreshold;
+
+        cv::Mat img_contour_mask = cv::Mat::zeros(binaryImage.size(), CV_8UC1);
+
+
+        cv::findContours(binaryImage, contoursThreshold, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+
+
+
+
+        std::vector<std::vector<cv::Point>> convexFilter;
+        for (const auto& e_contour : contoursThreshold) 
+        {
+
+            
+			if (e_contour.size() < 6)
+			{
+				continue;
+			}
+
+			auto area = cv::contourArea(e_contour);
+
+			auto bb = cv::boundingRect(e_contour);
+
+            if (area > 400 || area< 17 || bb.width < 9 || bb.height < 9 || bb.width > 35 || bb.height > 35)
+            {
+                continue;
+            }
+
+            double perimeter = cv::arcLength(e_contour, true);
+            double circularity = 12.566f * area / (perimeter * perimeter);
+            if (circularity < 0.55)
+            {
+                continue;
+            }
+
+            cv::Mat contourHull;
+            cv::convexHull(e_contour, contourHull);
+            convexFilter.push_back(contourHull);
+        }
+
+
+        contours.insert(contours.end(), convexFilter.begin(), convexFilter.end());
+    }
+
+
+
+
+
+
+	cv::Mat img_contour_mask = cv::Mat::zeros(binaryImage.size(), CV_8UC1);
+
+
+	// drawContours
+	// cv::drawContours(img_contour_mask, contours, -1, cv::Scalar(255), cv::FILLED);
+
+
+    int cnt = 0;
+    vector<uchar> color_lines = {
+	180, 200, 220 ,240, 255
+    };
+	std::vector<std::vector<cv::Point>> contours_roi;
+    for (auto& e_c : contours)
+    {
+
+		//if (cnt > 100)
+		//{
+		//	break;
+		//}
+	
+		contours_roi.push_back(e_c);
+        cv::drawContours(img_contour_mask, contours_roi, -1, cv::Scalar(color_lines[cnt % color_lines.size()]), 1);
+        contours_roi.clear();
+
+
+        
+        cnt++;
+    }
+    
+    img_contour_mask = img_contour_mask * 0.6 + img_r0 * 0.4;
+
+	cv::imwrite("d:/jd/t/t0/img_contour_mask.png", img_contour_mask);
+
+
+	
+
+	
+#if 1
+
+    // 过滤重复的轮廓, 使用map优化查找效率
+    std::vector<std::vector<cv::Point>> uniqueContours;
+    for (const auto& contour : contours) {
+        // 计算当前轮廓的中心点
+        cv::Moments m = cv::moments(contour);
+        cv::Point2f center(m.m10 / m.m00, m.m01 / m.m00);
+
+        bool isDuplicate = false;
+        // 与已保存的轮廓比较中心点距离
+        for (size_t i = 0; i < uniqueContours.size(); i++) {
+            cv::Moments m2 = cv::moments(uniqueContours[i]);
+            cv::Point2f center2(m2.m10 / m2.m00, m2.m01 / m2.m00);
+
+            // 如果中心点距离小于10个像素,认为是重复的轮廓, 并保留面积大的轮廓
+            if (cv::norm(center - center2) < 15) {
+                isDuplicate = true;
+                if (cv::contourArea(contour) > cv::contourArea(uniqueContours[i]))
+                {
+                    uniqueContours[i] = contour;
+                }
+                break;
+            }
+        }
+
+        if (!isDuplicate) {
+            uniqueContours.push_back(contour);
+        }
+    }
+
+
+
+    contours = uniqueContours;
+
+
+    img_contour_mask.setTo(0); 
+    cnt = 0;
+    for (auto& e_c : contours)
+    {
+
+
+        contours_roi.push_back(e_c);
+        cv::drawContours(img_contour_mask, contours_roi, -1, cv::Scalar(color_lines[cnt % color_lines.size()]), 1);
+        contours_roi.clear();
+
+        cnt++;
+    }
+
+    img_contour_mask = img_contour_mask * 0.6 + img_r0 * 0.4;
+
+    cv::imwrite("d:/jd/t/t0/img_rm_dup.png", img_contour_mask);
+
+
+
+	img_contour_mask.setTo(0);
+
+    cv::drawContours(img_contour_mask, contours, -1, cv::Scalar(255), cv::FILLED);
+
+
+	cv::imwrite("d:/jd/t/t0/img_contour_mask_ok.png", img_contour_mask);
+
+
+	cv::imwrite("d:/jd/t/t0/img_r0_gray.png", img_r0); 
+
+
+
+    
+
+
+
+
+#endif 
+
+
+
+
+#endif 
+#if 0
+
+	string fn = "d:/jd/t/t0/cervicHard.jpg";
+    vector<cv::Mat> v_img; 
+
+	ci.read_img(fn);
+	ci.cvtcolor("GRAY");
+
+    auto ciimg_clone = ci.img.clone(); 
+
+    
+	v_img.push_back(ciimg_clone);
+
+    ci.img.setTo(0);
+
+
+	v_img.push_back(ci.img);
+	
+	ci.img = ci.hconcat(v_img, 12);
+
+
+    ci.resize(0.2);
+
+    ci.s_i();
+	// cout << dstimg;
+
+
+
+
+
+
+
+#endif 
+
+
+#if 0
+    string fn = "d:/jd/t/t0/findcontour.png";
+    ci.read_img(fn); 
+
+    ci.cvtcolor("GRAY"); 
+
+    auto gray = ci.img.clone(); 
+
+
+	cv::GaussianBlur(ci.img, ci.img, cv::Size(3, 3), 0, 0);
+    ci.find_contours();
+
+    ci.v_contours; 
+
+    ci.img = gray; 
+
+    auto dstimg = ci.img.clone(); 
+
+    int cnt = 0;
+
+    vector<cv::Mat> vimg; 
+    for (auto e : ci.v_contours)
+    {
+        
+        std::vector<std::vector<cv::Point>> v_contours_ = { e };
+
+        cv::drawContours(dstimg, v_contours_, -1, cv::Scalar(122), 4);
+        vimg.push_back(dstimg.clone());
+        cnt++;
+        
+
+    }
+
+    // cout << dstimg; 
+
+
+	ci.img = ci.vconcat({ gray, dstimg }, 12);
+	ci.s_i(ci.img);
+
+
+	ci.img = ci.vconcat(vimg, 12);
+
+
+	cv::imwrite("d:/jd/t/t0/findcontour_result.png", ci.img);
+    ci.resize(.4);
+    ci.s_i(); 
+
+
+
+#endif 
+
+
+#if 0
+
+    string fn = "d:/jd/t/t0/hardcell.png";
+	ci.read_img(fn);
+
+
+    cv::GaussianBlur(ci.img, ci.img, cv::Size(3, 3), 0, 0);
+
+
+    // get mean of ci.img
+	auto mean_img = cv::mean(ci.img);
+
+
+	auto img_r0 = ci.img.clone();
+    int thres = mean_img[0];
+	ci.threshold(thres, 255);
+
+    ci.img = ~ci.img;
+
+
+    cv::imwrite("d:/jd/t/t0/bin.png", ci.img); 
+
+
+
+
+    ci.find_contours();
+    ci.v_contours;
+    ci.img_contour_mask;
+
+
+    int cnt = 0;
+    int KER_SZ = 5;
+
+    auto img_r1 = img_r0.clone();
+
+    for (auto& econ : ci.v_contours)
+    {
+        auto bb = cv::boundingRect(econ); 
+
+        cv::Mat imgroi = img_r0(bb) & ci.img_contour_mask(bb);
+
+
+
+        
+
+
+
+        int numOfNonZero = 0;
+
+
+
+        cout << cnt << endl; 
+        
+        {
+            // {0:l, 1:h, 2:avg_l, 3:avg_h, 4:stddev, 5: avg_all}
+            vector<pixelValPos> vFeatureImgroi = getChestCellPixelStatInfo(imgroi, KER_SZ, &numOfNonZero);
+
+
+            if (vFeatureImgroi.size() != CONST_LHAVGLHSTD_EXPECTED)
+            {
+                continue;
+            }
+            cv::Point2i coreMinPos = vFeatureImgroi[0].exy;
+
+
+			uchar coreMinAvgVal = vFeatureImgroi[5].ep;
+
+            auto thres = coreMinAvgVal;
+			if (thres > 255)
+			{
+				thres = 255;
+			}
+
+            for (int y = 0; y < imgroi.rows; ++y) {
+
+                for (int x = 0; x < imgroi.cols; ++x) {
+
+					auto& e = imgroi.ptr<uchar>(y)[x];
+					if (e < thres && e != 0) {
+						e = 255;
+						// coreMinPos = cv::Point2i(x, y);
+					}
+
+                }
+            }
+			
+
+           // imgroi.copyTo(img_r1(bb));
+
+
+
+
+            uchar updiff = (vFeatureImgroi[3].ep - vFeatureImgroi[2].ep) / 3.0f * 1.1f; // floodfill diff 上界,调整1.1f这个参数,调小会导致找得cell core偏小，反之
+
+            // cv::floodFill(imgroi, coreMinPos, 255, 0, cv::Scalar::all(10), cv::Scalar::all(updiff), FLOODFILL_FIXED_RANGE);
+
+
+            // 将imgroi中像素值为255的部分拷贝到img_r1的bb区域  
+            for (int y = 0; y < imgroi.rows; ++y) {
+                for (int x = 0; x < imgroi.cols; ++x) {
+                    if (imgroi.ptr<uchar>(y)[x] == 255 && img_r1.ptr<uchar>(bb.y + y)[bb.x + x]!=255) {
+                        img_r1.ptr<uchar>(bb.y + y)[bb.x + x] = imgroi.ptr<uchar>(y)[x];
+                    }
+                }
+            }
+
+
+
+            // ci.s_i(imgroi);
+        }
+      
+        cnt++;
+    }
+
+
+    ci.img = img_r1;
+
+    ci.resize(0.5);
+    ci.s_i();
+
+
+    
+
+
+   
+	
+
+
+
+    
+
+    
+    
+
+#endif 
+
+#if 0
+    string fn = "d:/jd/t/git/dna-analysis/images/analysis_result/DAchestdaHard/middle/10_9_rgb_org.jpg"; 
+	ci.read_img(fn);
+    // ci.img , {b,g,r} get min, then strip min from b,g,r, and average the other two
+    auto& img = ci.img;
+        assert(img.channels() == 3); // 确保图像是三通道的
+        vector<cv::Mat> vbgr;;
+		cv::split(img, vbgr); // 将图像拆分为三个通道
+
+        auto gray = vbgr[0].clone();
+
+        int sum = 0;
+        int cnt = 0;
+
+        for (int r = 0; r < img.rows; r++) 
+        {
+            for (int c = 0; c < img.cols; c++) 
+            {
+                cv::Vec3b& pixel = img.at<cv::Vec3b>(r, c);
+                auto& e_gray = gray.ptr<uchar>(r)[c];
+
+                vector<uint> vp = { pixel[0], pixel[1], pixel[2] };
+                std::sort(vp.begin(), vp.end());
+                e_gray = (vp[1] * 0.5 + vp[2] * 0.5);
+
+                sum += e_gray;
+                cnt++;
+
+            }
+        }
+   
+
+		auto avg = sum / cnt;
+
+        ci.img = gray; 
+
+        ci.s_i();
+
+        cv::imwrite("d:/jd/t/t0/hardcell.png", ci.img);
+
+
+
+
+
+
+
+#endif 
+#if 0
+
+    vector< string > v_fn = { "d:/jd/t/t0/background.bmp","d:/jd/t/t0/backgroundf.bmp", }; 
+
+    vector<cv::Mat> v_img;
+
+    for (auto efn : v_fn)
+    {
+        ci.read_img(efn);
+
+ 
+
+        ci.resize(0.3);
+
+
+        if (ci.img.channels() != 1)
+        {
+            ci.cvtcolor("GRAY");
+            ci.puttext("BGR");
+
+        }
+        else
+        {
+            ci.puttext("Y");
+        }
+        v_img.push_back(ci.img);
+
+
+    }
+
+
+    
+    ci.img = ci.hconcat(v_img, 12);
+
+
+    // split ci.img to v_img
+	/*vector<cv::Mat> v_img;
+	cv::split(ci.img, v_img);
+
+    ci.img = ci.hconcat(v_img, 12);*/
+
+    //ci.resize(0.3);
+    ci.s_i();
+
+    
+
+
+
+
+
+#endif 
+
+
+#if 0
+    vector<string> v_fn_img = {
+
+            "D:\\jd\\t\\git\\analysis-ui\\out\\AnalysisData\\analysis\\DAchest2024121304\\middle\\7_7_rgb_org.jpg",
+            "D:\\jd\\t\\git\\analysis-ui\\out\\AnalysisData\\analysis\\DAchest2024082810\\middle\\7_7_rgb_org.jpg",
+            "D:\\jd\\t\\git\\analysis-ui\\out\\AnalysisData\\analysis\\DAchest2024121314\\middle\\7_7_rgb_org.jpg"
+        };
+
+
+	vector<cv::Mat> v_img;
+    for (auto efn : v_fn_img)
+    {
+        ci.read_img(efn); 
+		v_img.push_back(ci.img.clone());
+
+    }
+
+    auto v_img_ = vector<cv::Mat>();
+
+    for (auto& eimg : v_img)
+    {
+        // split eimg to bgr
+		//vector<cv::Mat> vbgr;
+		// cv::split(eimg, vbgr);
+
+        // loop eimg rows, cols, get r,g,b 
+        for (int r = 0; r < eimg.rows; r++) {
+            for (int c = 0; c < eimg.cols; c++) {
+                cv::Vec3b & pixel = eimg.ptr<cv::Vec3b>(r)[c];
+                uchar r_val = pixel[2]; // Red channel
+                uchar g_val = pixel[1]; // Green channel
+                uchar b_val = pixel[0]; // Blue channel
+
+
+				vector<uchar> vp = { r_val, g_val, b_val };
+
+				std::sort(vp.begin(), vp.end());
+
+				auto max_p = vp[2];
+				auto mid_p = vp[1];
+				auto min_p = vp[0];
+				auto pavg = (max_p + mid_p) / 2;
+
+
+				pixel = cv::Vec3b(pavg, pavg, pavg);
+                
+
+
+
+                // auto m = max(r_val, std::max(g_val, b_val));
+
+                // strip max from b,g,r, and averge the other two
+
+
+            }
+        }
+
+
+
+
+
+        // hconcat vbgr
+		//auto img = ci.hconcat(vbgr, 4);
+		auto img = eimg.clone();
+		v_img_.push_back(img);
+
+		
+    }
+
+
+
+	auto img = ci.vconcat(v_img_, 14);
+    //ci.img = img; 
+    //ci.resize(0.18); 
+
+    //ci.s_i();
+
+	 cv::imwrite("d:/jd/t/t0/t.jpg", img);
+
+
+
+
+#endif 
+#if 0
+// get cyto
+
+
+    ci.create_img_rc_chn(2222, 2222, 1); 
+
+
+    ci.img.setTo(0);
+vector<cv::Point> points_r0 = {  
+   cv::Point(1785, 903),  
+   cv::Point(1785, 903),  
+   cv::Point(1785, 904),  
+   cv::Point(1785, 904),  
+   cv::Point(1785, 905),  
+   cv::Point(1785, 905),  
+   cv::Point(1785, 906),  
+   cv::Point(1785, 906),  
+   cv::Point(1785, 907),  
+   cv::Point(1785, 907),  
+   cv::Point(1785, 908),  
+   cv::Point(1785, 908),  
+   cv::Point(1785, 909),  
+   cv::Point(1785, 909)  
+};
+
+
+
+    vector<cv::Point> points = {
+        {1442, 621},
+        {1444, 623},
+        {1444, 625},
+        {1447, 628},
+        {1447, 631},
+        {1444, 634},
+        {1444, 635},
+        {1442, 637}
+    };
+
+
+    for (auto e : points_r0)
+    {
+        ci.img.at<uchar>(e) = 255;
+    }
+
+
+    ci.img;
+
+
+    std::vector<std::vector<cv::Point>> contours(1);
+    contours[0] = points;
+
+    auto img_r1 = ci.img.clone().setTo(0);
+    cv::drawContours(img_r1, contours, -1, cv::Scalar(255), cv::FILLED);
+    
+
+
+    // cv::findContours(img_r1, contours); 
+
+    // cv::findContours(img_r1, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+    cv::findContours(img_r1, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
+
+
+
+
+    ci.s_i(img_r1);
+
+
+
+
+#endif 
+
+#if 0
+    // get cyto
+    string fn = "d:/jd/t/git/dna-analysis/images/analysis_result/DAchest2024082810/middle/11_3_imgroi.png";
+    ci.read_img(fn); 
+
+    int numofnonzero = 0;
+    ci.img;
+    auto LhAvglhStd = getChestCellPixelStatInfo(ci.img, 5, &numofnonzero);
+
+
+
+
+#endif 
+
+#if 0
+
+    string fn = "d:/jd/t/t0/gray_r0.png";
+    string fn_mask = "d:/jd/t/t0/mask_r1.png";
+    
+    ci.read_img(fn_mask);
+    auto mask_r1 = ci.img.clone();
+    ci.read_img(fn);
+    auto gray = ci.img.clone();
+    auto gray_r0 = gray.clone();
+
+    cv::GaussianBlur(gray, gray, cv::Size(3, 3), 0, 0);
+        
+
+    auto bb = cv::Rect(703, 1829, 82 , 64); 
+
+
+    cv::Mat imgroi = gray(bb) & mask_r1(bb);
+
+    int numofnonzero = 0;
+    auto LhAvglhStd = getChestCellPixelStatInfo(imgroi, 5, &numofnonzero);
+
+    auto coreMinPos = LhAvglhStd[0].exy;
+
+    auto updiff = LhAvglhStd[3].ep - LhAvglhStd[2].ep;
+    updiff = updiff / 3 * 1.1f;
+
+    cv::floodFill(imgroi, coreMinPos, 255, 0, cv::Scalar::all(10), cv::Scalar::all(updiff), FLOODFILL_FIXED_RANGE);
+
+    imgroi.copyTo(gray(bb));
+
+
+    auto bb_ = cv::Rect(600, 1800, 222, 100);
+    ci.img = ci.hconcat({ gray_r0(bb_), gray(bb_) },4); 
+
+    ci.img;
+
+
+    cout << gray.size() << endl;
+
+
+
+#endif 
+#if 0
+
+    string fn = "d:/jd/t/t0/chest_1304_grey.jpg";
+    ci.read_img(fn);
+
+    auto gray_r0 = ci.img.clone();
+
+    cv::GaussianBlur(ci.img, ci.img, cv::Size(5, 5), 0, 0);
+
+    cv::threshold(ci.img, ci.img, 177, 255, ci.img.type());
+
+    ci.img = ~ci.img;
+
+
+
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(ci.img, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+
+    auto mask = ci.img.clone().setTo(0);
+
+    cv::drawContours(mask, contours, -1, cv::Scalar(255), cv::FILLED);
+
+
+    for (auto& ec : contours)
+    {
+
+        auto bb = cv::boundingRect(ec);
+
+        cout << bb << endl; 
+        cv::Mat imgroi = ci.img(bb) & mask(bb);
+
+        // imgroi.setTo(255);
+
+        for (int r = 0; r < imgroi.rows / 2; r++)
+        {
+            for (int c = 0; c < imgroi.cols / 2; c++)
+            {
+                imgroi.ptr<uchar>(r)[c] = 0;
+            }
+        }
+
+        imgroi.copyTo(gray_r0(bb));
+
+    }
+
+
+
+
+
+    cv::Rect rect(22, 22, 400, 400);
+
+
+
+    //cv::threshold(mask, mask, 1, 255, mask.type()); 
+
+
+
+    ci.img = ci.hconcat({ gray_r0(rect),  ci.img(rect), mask(rect) }, 8);
+
+
+
+
+
+    ci.s_i();
+
+#endif 
+
+#if 0
+    string fn = "d:/jd/t/t0/chest_2810_grey.jpg";
+
+    ci.read_img(fn);
+
+
+    
+    
+
+
+
+
+    cv::Rect bb(0, 44, 400, 500); 
+
+    auto bbimg = ci.img(bb); 
+
+   
+
+
+    // loop bbimg rows, cols 
+    for (int r = 0; r < bbimg_copy.rows; r++) {
+        for (int c = 0; c < bbimg_copy.cols; c++) {
+            // 处理每个像素
+            uchar pixel_value = bbimg_copy.ptr<uchar>(r)[c];
+            // 进行某种操作，例如阈值处理
+            if (pixel_value > 66) {
+                bbimg_copy.ptr<uchar>(r)[c] = 255; // 设置为白色
+            } else {
+                bbimg_copy.ptr<uchar>(r)[c] = 0;   // 设置为黑色
+            }
+        }
+    }
+
+
+    // ci.img(bb) = bbimg.clone();
+
+    
+
+    bbimg_copy.copyTo(ci.img(bb)); 
+
+
+    cout << ci.img << endl; 
+
+
+#endif 
+
+#if 0
+     
+    string fn_d = string("d:/jd/t/t0") + "/";
+
+    int LEN = 36;
+    vector<cv::Mat> vmat(LEN);
+
+
+    for (auto idx : ci.R(LEN))
+    {
+        auto fn = s_("{}{}.png", fn_d, idx);
+
+        //cout << fn << endl; 
+
+        ci.read_img(fn);
+
+        // ci.resize(11);
+       // ci.s_i();
+
+
+        vmat[idx] = ci.img;
+
+    }
+
+
+      vector<int> vidx_roi= ci.R(LEN); 
+    //vector<int> vidx_roi = {7,17,14};
+
+
+    vector<cv::Mat> v_3g(0);
+    vector<string> v_3gstr(0);
+
+    for (auto idx : vidx_roi)
+    {
+        auto gray = vmat[idx];
+
+
+        int numofnonzero = 0; 
+        auto LhAvglhStd = getChestCellPixelStatInfo(gray,5, &numofnonzero);
+
+
+        // auto coreInnerxy = findMinNonZeroPixel(gray);
+        auto coreMinPos = LhAvglhStd[0].exy;
+
+
+        
+        
+        
+
+
+
+
+        auto mask = gray.clone(); 
+
+        cv::threshold(mask, mask, 1, 255, mask.type()); 
+
+
+
+        cv::GaussianBlur(gray, gray, cv::Size(3, 3), 0, 0);
+        gray = gray & mask; 
+        // cv::GaussianBlur(gray, gray, cv::Size(3, 3), 0, 0);
+
+
+   
+       
+
+
+
+
+        //ci_0.img = gray.clone(); 
+        ////ci_0.resize(11);
+        //ci_0.img;
+        //ci_0.s_i();
+
+
+
+
+        //cv::Mat Gx, Gy;
+        //cv::Sobel(gray, Gx, CV_64F, 1, 0, 3); // 水平方向梯度
+        //cv::Sobel(gray, Gy, CV_64F, 0, 1, 3); // 垂直方向梯度
+        //cv::Mat gradientMagnitude;
+        //cv::magnitude(Gx, Gy, gradientMagnitude);
+
+        //cv::normalize(gradientMagnitude, gradientMagnitude, 0, 255, cv::NORM_MINMAX, CV_8U);
+
+   
+
+        //gradientMagnitude = gradientMagnitude & mask; 
+
+        //auto gradientMagnitude_r0 = gradientMagnitude.clone();
+
+
+
+        // auto coreInnerxy = findMinNonZeroPixel(gradientMagnitude);
+
+        //auto minval = gradientMagnitude.ptr(coreInnerxy.y)[coreInnerxy.x];
+
+
+        //cout << coreInnerxy << endl;
+
+
+
+        uchar minval = gray.at<uchar>(LhAvglhStd[0].exy);
+
+        
+       
+
+
+        auto gray_r1 = gray.clone();
+
+
+#if 0
+        int flags = 4:
+
+        填充操作的标志，控制填充方式。常用的标志包括：
+            4 : 边界填充，4 - 邻接。
+            8 : 边界填充，8 - 邻接。
+            FLOODFILL_FIXED_RANGE : 颜色匹配基于颜色范围，固定种子点颜色。
+            FLOODFILL_MASK_ONLY : 只更新掩模，不填充图像。
+#endif 
+
+
+        auto updiff = LhAvglhStd[3].ep - LhAvglhStd[2].ep;
+
+        
+        updiff = updiff / 3 * 1.1f;
+        // updiff = updiff / 10 * 1.0f;
+
+
+        cout << "Index: " << idx 
+            << ", Non-zero count: " << numofnonzero 
+            << ", Core Inner Coordinates: " << coreMinPos 
+            << ", Minimum Value: " << int(minval) 
+            << ", Up Difference: " << int(updiff) 
+            << ", Average Std Dev: " << int(LhAvglhStd[4].ep) 
+            << endl;
+        
+        // cv::floodFill(gray_r1, coreInnerxy, 255, 0, 0, cv::Scalar(minval + 3), 8);
+        cv::floodFill(gray_r1, coreMinPos, 255, 0, cv::Scalar::all(10), cv::Scalar::all(updiff), FLOODFILL_FIXED_RANGE);
+        // cv::floodFill(gray_r1, coreInnerxy, 255, 0, cv::Scalar::all(10), cv::Scalar::all(updiff), 4);
+
+
+        auto s_text = s_("coreInnerxy:[{}{}],minval:{},updiff:{}", coreMinPos.x, coreMinPos.y , int(minval), int(updiff));
+
+
+       ci.img = ci.hconcat({ gray, gray_r1 }, 4);
+
+
+       // ci.puttext(to_string(idx), cv::Scalar::all(222));
+
+       v_3gstr.push_back(s_text);
+
+        //ci.img = gradientMagnitude;
+
+
+        //ci.resize(11); 
+        ci.img;
+        
+        
+
+
+
+
+
+
+        v_3g.push_back(ci.img); 
+
+        //ci.s_i();
+        v_3g.size();
+
+       
+    }
+
+
+
+
+    
+  
+
+    ci.img = ci.vconcat(v_3g,8);
+
+    auto img_r0 = ci.img.clone();
+
+    cv::threshold(ci.img, ci.img, 254, 255, CV_THRESH_BINARY);
+
+
+    std::vector<std::vector<cv::Point>> v_contours;
+
+    cv::findContours(ci.img, v_contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+
+    auto mask = ci.img.clone().setTo(0);
+    //cv::drawContours(mask, v_contours, -1, cv::Scalar(255), cv::FILLED, cv::LINE_8, cv::noArray(), INT_MAX, cv::Point(-rect.x, -rect.y));
+    cv::drawContours(mask, v_contours, -1, cv::Scalar(255,0,0), 1);
+
+
+    
+
+    ci.img = ci.hconcat({ img_r0, mask });
+
+
+    ci.img_copy = ci.img; 
+
+
+
+
+#endif 
+
+
+#if 0
+
+
+
+    string fn = "d:/jd/t/lena.bmp";
+
+    ci.read_img(fn);
+    ci.cvtcolor("GRAY");
+
+
+    // ci.s_i(); 
+
+
+    cv::Rect2i roi(22, 22, 120, 150);
+    // 将 imgroi2_mat 设置回 ci.img 的相同 ROI
+
+    auto imgroi = ci.img(roi);
+    auto imgroi_copy = imgroi.clone();
+
+    imgroi_copy.at<uchar>(0, 11) = 0;
+    imgroi_copy.at<uchar>(1, 11) = 0;
+    imgroi_copy.at<uchar>(2, 11) = 0;
+    imgroi_copy.at<uchar>(3, 11) = 0;
+
+
+    // 使用 cv::Mat 代替 cv::MatExpr
+    cv::Mat imgroi2_mat = imgroi & imgroi_copy;
+
+    // 使用 .at<uchar>() 方法访问像素值
+    cout << int(imgroi2_mat.at<uchar>(1, 10)) << endl;
+
+    // imgroi2_mat.setTo(222);
+
+
+    imgroi.at<uchar>(0, 1) = 0;
+
+
+
+
+
+
+
+
+    //imgroi = imgroi2_mat; 
+
+
+
+    // set imgroi2_mat back to ci.img 
+
+
+
+    // imgroi.setTo(222); 
+
+
+    for (int r = 0; r < imgroi.rows; r++)
+    {
+        // loop cols 
+        // loop cols 
+        for (int c = 0; c < imgroi.cols; c++)
+        {
+            // Perform operations on each column
+            // Example: Access pixel value
+            auto& pixelValue = imgroi.ptr<v3b>(r)[c];
+
+            if (r < 10 && c < 11)
+            {
+                pixelValue = v3b(0, 0, 0);
+            }
+            else
+            {
+                pixelValue = v3b(0, 255, 255);
+            }
+            // Add your processing logic here
+        }
+    }
+
+    ci.img;
+
+    Sleep(1);
+#endif 
+#if 0
+
+
+
+//auto fn = string("d:/jd/t/t0/chest_5_7.jpg");
+//auto fn = string("d:/jd/t/t0/cervic_6_7.jpg");
+//auto fn = string("d:/jd/t/t0/chest_1304.jpg");
+    auto fn = string("d:/jd/t/t0/chest_1304_grey.jpg");
+
+    //auto fn = string("d:/jd/t/t0/chest_1304.jpg");
+    //auto fn = string("d:/jd/t/t0/chest_1314_grey.jpg");
+
+     //auto fn = string("d:/jd/t/t0/chest_2810.jpg");
+     //auto fn = string("d:/jd/t/t0/chest_2810_grey.jpg");
+    ci.read_img(fn);
+
+
+ 
+
+
+
+#if 0
+    vector<cv::Mat> v_bgry;
+    auto bgr = ci.img.clone();
+
+    ci.cvtcolor("gray");
+    auto gray = ci.img.clone();
+
+
+    cv::split(bgr, v_bgry);
+    v_bgry.push_back(gray);
+
+    for (auto& e : v_bgry)
+    {
+        // cut e to be center rectangle  w x h: 400x500
+        auto w = 400;
+        auto h = 500;
+        cv::Rect centerRect((e.cols - w) / 2, (e.rows - h) / 2, w, h);
+        e = e(centerRect).clone();
+
+    }
+
+    ci.img = ci.hconcat(v_bgry, 4);
+
+    // ci.resize(0.3);
+    ci.s_i();
+
+#endif 
+
+
+
+
+    using cvContour = std::vector<std::vector<cv::Point>>;
+    cv::Mat image;
+
+    int flag_need_cut = 1;
+    int cutrows = 400;
+    int cutcols = 400;
+    
+    const int BIN_THRES = 41;
+    const int DIFF_THRES = 100;
+    const int D_DIFF_THRES = 88;
+
+    int intv = 4;
+
+
+
+    cv::Mat bgr;
+    auto img_r0 = ci.img.clone();
+    cv::Mat & gray = ci.img; 
+    int bg[4];
+    doCurrentBackground(gray, bg);
+
+    if (flag_need_cut == 1)
+    {
+        int x = (gray.cols - cutcols) / 2;
+        int y = (gray.rows - cutrows) / 2;
+        gray = gray(cv::Rect(x, y, cutcols, cutrows));
+    }
+
+
+
+
+
+    cv::GaussianBlur(gray, gray, cv::Size(5, 5), 0, 0);
+
+
+    cv::imwrite("d:/jd/t/t0/center.png", gray); 
+
+
+
+    auto contours_roi = doChestProcessY(ci.img, bg, BIN_THRES);
+
+
+  
+
+
+    vector<cv::Mat> vmat; 
+
+
+    
+
+
+
+
+
+
+
+    for (size_t i = 0; i < contours_roi.size(); i++) 
+    {
+        // cv::drawContours(mask, contours_roi, static_cast<int>(i), cv::Scalar(255), cv::FILLED); // 填充轮廓
+
+
+        auto graybb = clone_contour_bb(gray, contours_roi[i]);
+
+        vmat.push_back(graybb); 
+    }
+
+
+
+    int cnt = 0; 
+    string fn_d = string("d:/jd/t/t0") + "/";
+    for (auto e : vmat)
+    {
+        cv::imwrite(fn_d + to_string(cnt) + ".png", e);
+        cnt++;
+    }
+
+
+    //diffimg; 
+
+
+
+
+#if 0
+    cv::Mat d_diffimg = mask.clone();
+    d_diffimg.setTo(0);
+
+    for (size_t i = 0; i < contours_roi.size(); i++)
+    {
+        cv::drawContours(mask, contours_roi, static_cast<int>(i), cv::Scalar(255), cv::FILLED); // 填充轮廓
+
+        // get boundbox for contours_roi[i]
+        cv::Rect bbox = cv::boundingRect(contours_roi[i]);
+
+
+
+        deal_bbox_diff(diffimg, mask, d_diffimg, bbox,2.0f ,D_DIFF_THRES);
+
+        // deal_bbox_diff(diffimg, mask, diffimg, bbox);
+
+
+
+        // loop all bbox's pixel value and count the average 
+
+
+
+    }
+    //ci.s_i(diffimg);
+
+    //diffimg += 100;
+
+
+    
+    cv::Mat min_kernel; // 用于存储最小值的图像
+    cv::Mat temp; // 临时图像
+
+    // 使用 3x3 的卷积核
+    cv::Mat kernel = (cv::Mat_<uchar>(3, 3) << 1, 1, 1, 1, 1, 1, 1, 1, 1);
+
+    // 初始化 min_kernel
+    min_kernel = cv::Mat::zeros(d_diffimg.size(), d_diffimg.type());
+
+    // 遍历图像
+    for (int r = 1; r < d_diffimg.rows - 1; r++) {
+       for (int c = 1; c < d_diffimg.cols - 1; c++) {
+           // 提取 3x3 区域
+           temp = d_diffimg(cv::Rect(c - 1, r - 1, 3, 3));
+           // 计算最小值
+           double min_val;
+           cv::minMaxLoc(temp, &min_val);
+           min_kernel.ptr(r)[c] = static_cast<uchar>(min_val);
+       }
+    }
+
+
+    d_diffimg = min_kernel; 
+
+
+    cv::threshold(d_diffimg, d_diffimg, 1, 255, cv::THRESH_BINARY);
+#endif 
+    //ci.img = ci.hconcat({ diffimg, gray,/* d_diffimg*/ }, 4);
+
+    //ci.s_i();
+
+
+    //cv::imwrite("d:/jd/t/t0/diffimg.png", diffimg); 
+
+
+
+
+
+
+    
+
+    
+
+
+
+    
+    
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    //ci.resize(0.3);
+    // ci.s_i();
+
+#endif
+#if 0
+    
+    
+
+    // 使用标准库中的 M_PI
+    double pi_value = M_PI; // 或者直接使用 3.14159265358979323846
+#endif 
+
+#if 0
+
+    ci.read_img("image_g_r.png"); 
+    ci.img;
+
+    cv::Mat binimg; 
+    cv::threshold(ci.img, binimg,  155, 255, CV_)
+
+
+    ci.s_i();
+
+
+    
+
+
+
+   
+
+
+
+
+
+#if 0
+
+    vector<cv::Mat> channels = { ci.img }; 
+
+    // 计算每个通道的梯度幅值
+    std::vector<cv::Mat> gradientMagnitudes;
+    for (const auto& channel : channels) {
+        cv::Mat Gx, Gy;
+        cv::Sobel(channel, Gx, CV_64F, 1, 0, 3); // 水平方向梯度
+        cv::Sobel(channel, Gy, CV_64F, 0, 1, 3); // 垂直方向梯度
+        cv::Mat gradientMagnitude;
+        cv::magnitude(Gx, Gy, gradientMagnitude);
+        gradientMagnitudes.push_back(gradientMagnitude);
+    }
+
+
+    cv::normalize(gradientMagnitudes[0], gradientMagnitudes[0], 0, 255, cv::NORM_MINMAX, CV_8U);
+
+
+    // 取梯度, 取其中最大值 * 3
+    cv::Mat gradientMagnitude = gradientMagnitudes[0];
+  
+    cv::multiply(gradientMagnitude, 3, gradientMagnitude);
+
+    cout << "gradientMagnitude.type() = " << gradientMagnitude.type() << endl;
+
+    cv::imwrite("gradientMagnitude.jpg", gradientMagnitude);
+
+    cv::Mat binaryImage;
+    cv::threshold(gradientMagnitude, binaryImage, 70, 255, cv::THRESH_BINARY);
+
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(binaryImage, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
+
+
+    // 计算每个轮廓度的凸包
+    std::vector<std::vector<cv::Point>> convexHulls;
+    for (const auto& contour : contours) {
+
+        if (!filterContour(contour)) {
+            continue;
+        }
+
+        convexHulls.push_back(contour);
+    }
+
+    // 填充白色, 方便下一步继续识别细胞核
+    for (const auto& contour : convexHulls) {
+        cv::fillPoly(binaryImage, std::vector<std::vector<cv::Point>>{contour}, cv::Scalar(255));
+    }
+
+
+    
+    cv::imwrite("fill_binaryImage.jpg", binaryImage);
+
+
+    contours.clear(); 
+
+#endif 
+    // cv::adaptiveThreshold(ci.img, ci.img, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 31, 3);
+
+
+
+
+
+
+
+
+
+
+
+
+#endif 
+
+
+
+#if 0
+
+    const unordered_map<string, string> vss{
+        {"a","b"},
+        {"a0","b0"},
+    
+    };
+
+
+
+    auto e = vss.at("a");
+
+
+    cout << e << endl;
+
+#endif
+#if 0
+    cout_("{}",ci.linspace(2, 3, 3));
+#endif
+#if 0
+
+    for (auto e : ci.R(1,9,3))
+    {
+        cout << e << endl; 
+    }
+
+#endif
+
+#if 0
+    string fn_d = "d:/jd/doc/sw_monograph"; 
+    string title = "a"; 
+    int max_idx = 399;
+    int step = 16;
+
+
+    if (argc == 2)
+    {
+        fn_d = string(argv[1]);
+    }
+
+    if (argc == 3)
+    {
+        fn_d = string(argv[1]);
+        title = string(argv[2]);
+        
+    }
+
+    if (argc == 4)
+    {
+        fn_d = string(argv[1]);
+        title = string(argv[2]);
+        max_idx = atoi(argv[3]);
+    }
+
+    if (argc == 5)
+    {
+        fn_d = string(argv[1]);
+        title = string(argv[2]);
+        max_idx = atoi(argv[3]);
+        step = atoi(argv[4]);
+    }
+
+
+    from_dat_to_v_p_png_slow(fn_d, title, max_idx, step);
+
+#endif
+#if 0
+    int rows = 2056;
+    int cols = 2464;
+
+    string fn_d = "d:/jd/doc/sw_monograph";
+    vector<int> vi(399,0);
+    std::iota(vi.begin(), vi.end(), 0);    // generate array list 0 to N
+
+    int i = 0; 
+    for (auto e : vi)
+    {
+        auto e_fn = s_("{}/zidx_a_{}.dat", fn_d, e);
+
+        ci.read_bin_to_mat(e_fn, rows, cols, 1); 
+        // ci.resize(1/4.0);
+        auto fn_png = s_("{}.png", e_fn);
+
+        if (i % 10 == 0)
+        {
+            cout << fn_png << endl; 
+        }
+        cv::imwrite(fn_png, ci.img); 
+        i++;
+    }
+
+#endif
+
+#if 0
+    float multiplyFactor = 0.35; 
+    cv::Mat img4C(3330, 5500, CV_8UC4);
+    cv::Mat img_resized;
+
+    cv::resize(img4C, img_resized, cv::Size((int)(img4C.cols * multiplyFactor), int(img4C.rows * multiplyFactor)));
+
+
+    ci.s_i(img_resized);
+
+#endif
+#if 0
+
+  
+    char* s = ret_test(); 
+    for (uint i = 0; i < 4; i++)
+    {
+        cout << s[i] << endl;
+    }
+
+#endif
+#if 0
+    int w = 9;
+    int h = 13;
+
+    vector<uchar> vuc(w*h, 111); 
+    cv::Mat id_mat(h, w, CV_8UC1, vuc.data()); 
+    cout << id_mat.isContinuous() << endl; 
+
+
+
+
+
+    ci.create_img_rc_chn(h, w, 2); 
+    cout << ci.img.isContinuous() << endl; 
+
+
+    // ci.s_i(id_mat); 
+
+
+    //vector<char> vc; 
+
+    //auto t0 = GetTickCount64();
+    //for(int i=0;i<1000;i++)
+    //    vc = vector<char>(vuc.begin(), vuc.end());
+    //auto d = GetTickCount64() - t0; 
+
+    //cout << d << endl;
+
+#endif
+#if 0
+    ci.create_img_rc_chn(999, 888, 4); 
+    cv::Mat dstImg; 
+    cv::resize(ci.img, dstImg, cv::Size(ci.img.rows * 2, ci.img.cols * 2), 1);
+
+    ci.s_i(dstImg);
+
+#endif
+#if 0
+
+    // jpg bytes array to mat
+    auto id_s = ci.read_bin_to_string("d:/jd/t/t0/1.jpg"); 
+    vector<char> vchar = vector<char>(id_s.begin(), id_s.end()); 
+    auto mat = cv::imdecode(vchar, cv::IMREAD_COLOR); 
+
+    ci.s_i(mat);
+
+#endif
+#if 0
+    int rows = 512;
+    int cols = 512;
+    ci.create_img_rc_chn(rows, cols, 1);
+
+    ci.img.setTo(0);
+
+    auto gray = 250;
+    cv::drawContours(ci.img, std::vector<std::vector<cv::Point>>({ {{22,33},{333,444}} }), -1, cv::Scalar(gray), 1, cv::LINE_8, cv::noArray(), INT_MAX);
+
+    ci.s_i();
+
+#endif
+#if 0
+
+
+    vector<int> va(55, 0);
+
+    std::iota(va.begin(), va.end(), 0);
+
+    cout_("{}", va);
+
+#endif
+#if 0
+
+    int rows = 4;
+    int cols = 5;
+
+    // Create a byte array containing data (should be rows * cols in size)  
+    // For example: a grayscale image of 4x5 pixels  
+    uint8_t byteArray[20] = { 0, 50, 100, 150, 200,
+                               25, 75, 125, 175, 225,
+                               10, 20, 30, 40, 50,
+                               5, 15, 25, 35, 45 };
+
+    cv::Mat id_mat(rows, cols, CV_8UC1, byteArray);
+
+    cout << id_mat << endl; 
+
+    byteArray[4] = 111; 
+    cout << id_mat << endl;
+
+#endif
+
+#if 0
+    string fn = "d:/jd/t/git/sq2dz/sqrayslide_demo/sqrayslide_demo/sqrayslide_20240202_x64/windows/bin/1.bin";
+    int cols = 5120;
+    int rows = 2560;
+    ci.read_bin_to_mat(fn, rows, cols, 4);
+    ci.resize(1.0f / 4);
+    ci.s_i();
+
+#endif
+#if 0
+    string fn = "d:/jd/t/t0/test.png";
+    ci.read_img(fn); 
+
+    ci.s_i();
+
+#endif
+#if 0
+    string fn_d = "d:/jd/t";
+    vector<cv::String> v_fn;
+    cv::glob(fn_d, v_fn, false);
+
+    for (auto efn : v_fn)
+    {
+        string efn_s = efn;
+        cout << efn_s + ":"+ efn_s << endl;
+    }
+
+#endif
+#if 0
+    vector<double> vi{ 2.2,3,4,5,6,7,8 };
+
+    vi.resize(3);
+    cout_("{}", vi);
+    cout << endl;
+
+#endif
+
+#if 0
+    string fn_d = "d:/jd/t/t0";
+    vector<string> v_fn{
+    s_("{}/zidx_e_{}.dat", fn_d, 206),
+    s_("{}/zidx_e_{}.dat", fn_d, 238),
+
+    };
+
+    vector<cv::Mat> v_mat(v_fn.size());
+
+
+    int rows = 2056;
+    int cols = 2464;
+    int step = 1;
+    int cnt = 0;
+    for (auto e_fn : v_fn)
+    {
+        ci.read_bin_to_mat(e_fn, rows, cols, 1);
+
+
+        v_mat[cnt++] = ci.img;
+
+    }
+
+    ci.img = ci.hconcat(v_mat, 9);
+
+    ci.resize(0.3f);
+    ci.s_i();
+
+#endif
+
+#if 0
+    vector<float> vf{ 2.0f,3.0f,4.5f }; 
+    auto ev =  ci.sum_vec(vf);
+
+    cout << ev << endl;
+
+    cout << ci.mean_vec(vf) << endl; 
+
+    cout_("{}\n", ci.diff_v(vf)) ;
+
+#endif
+
+#if 0
+
+    string fn_d = "d:/jd/t/t0";
+    vector<string> v_fn{
+    s_("{}/zidx_e_{}.dat", fn_d, 206),
+    s_("{}/zidx_e_{}.dat", fn_d, 238),
+
+    };
+
+    vector<cv::Mat> v_mat(v_fn.size()); 
+
+
+    int rows = 2056;
+    int cols = 2464;
+    int step = 1;
+    int cnt = 0;
+    for (auto e_fn : v_fn)
+    {
+        ci.read_bin_to_mat(e_fn, rows, cols, 1);
+
+        cv::Mat mean, stddev;
+
+        cv::meanStdDev(ci.img, mean, stddev); 
+        cout << e_fn << endl; 
+        cout << mean << stddev << endl; 
+
+
+        auto sz = min(rows, cols);
+        vector<int> vp;
+        vector<int> vn;
+
+
+
+        for (int i = 0; i < sz; i++)
+        {
+            auto& e_pv = ci.img.ptr<uchar>(i)[i];
+            auto& e_nv = ci.img.ptr<uchar>(i)[sz - i - 1];
+
+
+
+            if (i % step == 0)
+            {
+                vp.push_back(e_pv);
+                vn.push_back(e_nv);
+            }
+        }
+
+        auto vp_vn = ci.combine_vec(vp, vn);
+
+        
+        ci.create_img_rc_chn(1, vp_vn.size(), 1); 
+       
+        std::copy(vp_vn.begin(), vp_vn.end(), ci.img.data);
+
+        cv::meanStdDev(ci.img, mean, stddev); 
+
+        cout << stddev << endl; 
+
+        
+
+        unordered_map<int, int> m_v_c;
+
+        for (auto e : vp_vn)
+        {
+            m_v_c[e]++;
+        }
+
+        vector<int> vi(256, 0);
+        
+        for (int i = 0; i < vi.size(); i++)
+        {
+            vi[i] = m_v_c[i];
+        }
+
+        auto img = ci.P(vi,0);
+
+        cout_("x={}\n", vi);
+
+        v_mat[cnt] = img; 
+
+        cnt++;
+    }
+
+    auto v_merge = ci.img_copy;
+    cv::hconcat(v_mat, v_merge);
+
+    ci.s_i(v_merge);
+
+#endif
+
+#if 0
+
+    from_dat_to_v_p("e", 399, 16);
+
+#endif
+
+#if 0
+    vector<int> vi(100,0);
+    int cnt = 0;
+    for (auto& e : vi)
+    {
+        e = cnt++;
+    }
+
+
+    ci.P(vi);
+
+#endif
+
+#if 0
+
+    ci.img = ci.P(vector<int>{ 1,2,3,4 },0);
+    ci.puttext("img:1");
+    
+    ci.s_i();
+
+#endif
+#if 0
+
+    vector<int> vi{ 2,3,4,7,8,9 }; 
+    vector<int> diff(vi.size(), 0);
+    std::adjacent_difference(vi.begin(), vi.end(), diff.begin()); 
+    cout_("{}", diff);
+
+#endif
+
+#if 0
 
     vector<string> fn_all{
     "d:/jd/t/t0/log_diffsum_a.csv.png",
@@ -2683,20 +9108,64 @@ int main(int argc, char** argv)
     "d:/jd/t/t0/log_diffsum_e.csv.png",
     };
 
+    int step = 16;
 
-     // vector<float> vi = { /*101705728 , 55816704 , 18322944 , 3111292 , 2549074 , */2469874 , 792760 , 312320 , 248198 , 224503 , 178233 , 165504 , 165171 , 163501 , 154503 , 154260 , 138001 , 136997 , 133984 , 122880 , 112743 , 106752 , 100604 , 98818 , 95778 , 94902 , 84102 , 82964 , 74281 , 73837 , 73173 , 72590 , 71965 , 70235 , 70072 , 69455 , 58880 , 57476 , 57471 , 53697 , 52749 , 51586 , 51515 , 49723 , 47104 , 46080 , 42846 , 42837 , 42576 , 40478 , 38861 , 37940 , 37540 , 37286 , 35840 , 34425 , 34304 , 33625 , 33374 , 33131 , 31957 , 31605 , 29666 , 28915 , 28636 , 27913 , 27081 , 26937 , 25534 , 25478 , 24653 , 24345 , 24129 , 23843 , 23302 , 22559 , 22203 , 22031 , 21969 };
- vector<float> vi = { 55,6.6,3.01,7, }; 
+    vector<int> vstep = { 16,20,25,30,35 }; 
+    for (auto step : vstep)
+    {
 
-    ci.img = ci.P(vi);
+       
 
-    ci.s_i();
+        //     for (auto fn : fn_all)
+        {
+            ci.read_img(fn_all[1]);
+
+            vector<int> vsum;
+            vsum.resize(ci.img.rows);
+
+
+            for (int r = 0; r < ci.img.rows; r++)
+            {
+
+                uchar* tr = ci.img.row(r).data;
+
+                int sum = 0;
+                for (int c = 0; c < ci.img.cols - step; c += step)
+                {
+
+                    //auto prev = tr[c]; 
+                    //auto next = tr[c + step];
+
+
+                    auto diff = abs(tr[c] - tr[c + step]);
+
+                    sum += diff;
+
+
+                }
+
+
+                vsum[r] = sum;
+            }
+
+
+            int flag_show = 0;
+            cout << step << endl; 
+            auto img = ci.P(vsum, flag_show);
+            ci.puttext(img, to_string(step));
+            ci.s_i(img);
+
+            //ci.s_i(png);
+        }
+
+
+
+
+
+    }
+
 
     // visualizeVector(vi, "abs");
-
-
-
-
-
 
 #endif
 
@@ -2786,13 +9255,8 @@ int main(int argc, char** argv)
 
         cv::imwrite(fn + ".png", ci.img); 
     }
-   
-
-    
-
 
 #endif
-
 
 #if 0
     ci.create_img_rc_chn(1, 2, 3);
@@ -2812,12 +9276,9 @@ int main(int argc, char** argv)
 
     ci.read_img("1.png"); 
 
-    cout << ci.img << endl; 
+    cout << ci.img << endl;
 
-
-
-
-#endif 
+#endif
 
 #if 0
 
@@ -2853,7 +9314,7 @@ int main(int argc, char** argv)
 
     }
 
-#endif 
+#endif
 
 #if 0
     ci.create_img_rc_chn(4, 8 + 4 + 8, 1); 
@@ -2889,9 +9350,7 @@ int main(int argc, char** argv)
 
     assert(0 == 1);
 
-
-
-#endif 
+#endif
 #if 0
     vector<string> vfn = {
 
@@ -2939,10 +9398,9 @@ int main(int argc, char** argv)
 
     cv::Mat catimg;
     cv::hconcat(vimg, catimg);
-    ci.s_i(catimg); 
+    ci.s_i(catimg);
 
-
-#endif 
+#endif
 #if 0
 
     string a(120*120, 'a'); 
@@ -2957,10 +9415,7 @@ int main(int argc, char** argv)
 
     ci.s_i();
 
-
-
-
-#endif 
+#endif
 #if 0
 
     string fn = "d:/jd/t/t0/zidx_10.dat"; 
@@ -3001,11 +9456,7 @@ int main(int argc, char** argv)
     ci.resize(0.4);
     ci.s_i();
 
-
-
-
-
-#endif 
+#endif
 
 #if 0
 
@@ -3071,15 +9522,7 @@ int main(int argc, char** argv)
 
     cout << s_("{}", cnt_pixels);
 
-
-
-
-
-
-
-
-#endif 
-
+#endif
 
 #if 0
 
@@ -3093,24 +9536,7 @@ int main(int argc, char** argv)
     system("Sleep 1000"); 
     //cout << s_("{}", top_peaks);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#endif 
+#endif
 
 #if 0
 
@@ -3153,13 +9579,13 @@ int main(int argc, char** argv)
     cout << s_("{}", m_) << endl; 
 
     cout << m_.size() << endl;
-#endif 
+#endif
 
 #if 0
 
     cout << std::round(1.2351 * 1000.0) / 1000.0 << endl;;
 
-#endif 
+#endif
 #if 0
     unordered_map<int*, int> ma;
     vector<int> vi(100, 999); 
@@ -3169,17 +9595,16 @@ int main(int argc, char** argv)
         ma[&e] = 1;
     }
 
-    cout << ma.size() << endl; 
+    cout << ma.size() << endl;
 
-#endif 
+#endif
 #if 0
 
     unordered_map<string, std::vector<cv::Point2i>> ma;
 
     ma["cv::Point(3, 4)"] = { {2,3} };
 
-
-#endif 
+#endif
 #if 0
 
 string fn = "d:/jd/t/t0/e6_pos.jpg"; 
@@ -3199,13 +9624,11 @@ ci.resize(0.2f);
 
 ci.s_i();
 
-
-#endif 
-
+#endif
 
 #if 0
 string fn = "d:/jd/t/t0/e6_pos.jpg"; 
-ci.read_img(fn); 
+ci.read_img(fn);
 
 #if 0
 for(int r = 0; r < ci.img.rows; r++)
@@ -3376,16 +9799,7 @@ ci.s_i();
 
   //cv::adaptiveThreshold(hsvChannels[2], hsvChannels[2], 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 21, 15);  
 
-  //cv::adaptiveThreshold(hsvChannels[1], hsvChannels[1], 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 21, 11);  
-
-
-
-
-
-
-
-
-
+  //cv::adaptiveThreshold(hsvChannels[1], hsvChannels[1], 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 21, 11);
 
 #if 0
 
@@ -3403,8 +9817,6 @@ ci.resize(0.21f);
 
 
 // ci.s_i();
-
-
 
 #if 0
 
@@ -3433,9 +9845,7 @@ ci.img = g_img;
 
 cv::imwrite("d:/jd/t/t0/1.jpg", g_img);
 
-
-#endif 
-
+#endif
 
 #if 0
 cv::hconcat(v_img, ci.img);
@@ -3443,19 +9853,7 @@ cv::hconcat(v_img, ci.img);
 ci.resize(0.15f);
 
 ci.s_i();
-#endif 
-
-
-
-
-
-
-
-
-
-
-
-
+#endif
 
 #if 0
 cv::threshold(img_g, img_g, 144, 255, cv::THRESH_BINARY); // get binary overlay picture
@@ -3465,9 +9863,9 @@ ci.img = img_g;
 cv::imwrite("d:/jd/t/t0/1.jpg", ci.img);
 
 ci.s_i();
-#endif 
+#endif
 
-#endif 
+#endif
 
 #if 0
 cv::Mat img(300,500,CV_8UC1); 
@@ -3500,10 +9898,7 @@ ci.img = img;
 ci.normalized();
 ci.s_i();
 
-
-
-
-#endif 
+#endif
 
 #if 0
     string fn = "d:/jd/t/t0/p16test.png"; 
@@ -3582,7 +9977,7 @@ ci.s_i();
 
 
     int t = 0;
-#endif 
+#endif
 #if 0
 
 
@@ -3604,8 +9999,7 @@ ci.s_i();
     }
     run_test(a);
 
-
-#endif 
+#endif
 #if 0
      ci.read_img("d:/jd/t/t0/id_mat_mask0.jpg"); 
    // ci.read_img("d:/jd/t/t0/g_img.jpg"); 
@@ -3622,7 +10016,7 @@ ci.s_i();
 
      system("pause");
 
-#endif 
+#endif
 #if 0
 // get g img
     ci.read_img("D:/jd/t/smb_share/t/test_rgb2y/边缘分割/01_03.jpg");
@@ -3648,18 +10042,7 @@ ci.s_i();
   ci.img = v_chn; 
     ci.s_i();
 
-
-
-
-
-
-
-
-
-
-
-
-#endif 
+#endif
 
 #if 0
     // from g to contour
@@ -3690,12 +10073,9 @@ ci.s_i();
 
 
 //    string ss = s_("{}", hist_info);
-    //std::cout << ss << std::endl; 
+    //std::cout << ss << std::endl;
 
-    
-
-     
-#endif 
+#endif
 #if 0
     // get g img
     ci.read_img("D:/jd/t/smb_share/t/test_rgb2y/边缘分割/01_03.jpg"); 
@@ -3721,23 +10101,12 @@ ci.s_i();
 
     ci.s_i();
 
-    
-
-
-
-
-
-
-
-
-
-
-#endif 
+#endif
 #if 0
 
     uint64_t u64_addr = 782695920232LL;
 
-#endif 
+#endif
 
 #if 0
 
@@ -3780,9 +10149,7 @@ ci.s_i();
 
     return 0;
 
-
-
-#endif 
+#endif
 #if 0
 
 
@@ -3813,9 +10180,7 @@ ci.s_i();
 
     system("pause");
 
-
-#endif 
-
+#endif
 
 #if 0
 
@@ -3830,10 +10195,9 @@ ci.s_i();
     cout << int_copy << endl;
     ci.fcout("1.txt", to_string(u64_addr));
             
-   system("pause"); 
+   system("pause");
 
-#endif 
-
+#endif
 
 #if 0
 
@@ -3847,10 +10211,9 @@ ci.s_i();
     auto img_z = cv::Mat(ci.img.size(), CV_8UC1).setTo(111); 
 
 
-    ci.s_i(img_z); 
+    ci.s_i(img_z);
 
-
-#endif 
+#endif
 
 #if 0
 
@@ -3899,11 +10262,7 @@ ci.s_i();
     
     }
 
-
-
-    
-
-#endif 
+#endif
 
 #if 0
 
@@ -3965,14 +10324,9 @@ ci.s_i();
         }
     }
 
-    cout << "END" << endl; 
+    cout << "END" << endl;
 
-
-
-
-
-
-#endif 
+#endif
 
 #if 0
 
@@ -4007,10 +10361,7 @@ for (auto &e : v_fn)
     //break;
 }
 
-
-
-#endif 
-
+#endif
 
 #if 0
 
@@ -4022,10 +10373,9 @@ for (auto &e : v_fn)
     */
 
     int a = 9; 
-    int b = 99; 
+    int b = 99;
 
-
-#endif 
+#endif
 
 #if 0
 
@@ -4061,7 +10411,7 @@ for (auto &e : v_fn)
 		cv::imwrite(fn_new_new, mat_cut);
 
     }
-#endif 
+#endif
 
 #if 0
     int cnt = 0;
@@ -4087,8 +10437,7 @@ for (auto &e : v_fn)
 
     assert(0 == 1);
 
-#endif 
-
+#endif
 
 #if 0
     unordered_map<int, int> um = { {1,2} };
@@ -4103,20 +10452,14 @@ for (auto &e : v_fn)
 
 
     cout << um.size() <<endl;
-    
 
-#endif 
-
-
+#endif
 
 #if 0
     string fff = R"(d:\jd\t\rgb_y_comp.png)";
     ci.read_img(fff);
     ci.s_i();
-#endif 
-
-
-
+#endif
 
 #if 0
 
@@ -4138,11 +10481,7 @@ for (auto &e : v_fn)
     //cv::resize(ci.img, ci.img, cv::Size( ci.img.cols / 4, ci.img.rows / 4));
     //ci.s_i();
 
-
-
-
-
-#endif 
+#endif
 #if 0
     fn_r0 = string("D:/jd/t/git/dna-analysis/images/img/comp/new_rgb.jpg");  
     ci.read_img(fn_r0);
@@ -4171,12 +10510,7 @@ for (auto &e : v_fn)
     // ?头???源
     destroyAllWindows();
 
-    
-
-#endif 
-
-
-
+#endif
 
 #if 0
     int scale_f = 4;
@@ -4245,7 +10579,6 @@ for (auto &e : v_fn)
         cout << "i0:" << i0 << ", i1:" << i1 << ", i2:" << i2 << ", i3:" << i3 << endl;
         cout << "f0:" << f0 << ", f1:" << f1 << ", f2:" << f2 << ", f3:" << f3 << endl;
 
-
 #if 1
         // f0:0.0799999, f1:-0.24, f2:-0.12, f3:1.24
 f0 = 0.0799999f;
@@ -4297,11 +10630,7 @@ f3 = 1.24f;
 
     int t = 999;
 
-
-
-#endif 
-
-
+#endif
 
 #if 0
     unordered_map<string, pair<string, string>> fn_map
@@ -4315,10 +10644,7 @@ f3 = 1.24f;
 	cout << pfs.first << endl; 
 	cout << pfs.second << endl;
 
-
-
-
-#endif 
+#endif
 #if 0
 
     cv::Scalar mean, stddev; 
@@ -4328,8 +10654,7 @@ f3 = 1.24f;
     cout << mean << endl; 
     cout << stddev << endl;
 
-
-#endif 
+#endif
 
 #if 0
 
@@ -4354,8 +10679,7 @@ f3 = 1.24f;
 
     cout << obj_ptr->DnaIndex << endl;
 
-
-#endif 
+#endif
 
 #if 0
 
@@ -4402,13 +10726,9 @@ f3 = 1.24f;
     
    return 0;
 
-    //ci.s_i(ci.img); 
+    //ci.s_i(ci.img);
 
-
-
-
-
-#endif 
+#endif
 #if 0
 
     string fn = "d:/jd/t/git/dna-analysis/images/img/comp/new_rgb.jpg";
@@ -4422,11 +10742,9 @@ f3 = 1.24f;
 
 
     ci.s_i(value); 
-    cv::imwrite("d:/jd/t/1.jpg", value); 
+    cv::imwrite("d:/jd/t/1.jpg", value);
 
-
-
-#endif 
+#endif
 #if 0
 
     string fn = "d:/jd/t/git/dna-analysis/images/img/comp/new_y.bmp"; 
@@ -4440,7 +10758,7 @@ f3 = 1.24f;
 
     cv::imwrite("d:/jd/t/git/dna-analysis/images/img/comp/new_y.jpg", ci.img);
 
-#endif 
+#endif
 #if 0
     string fn = "d:/jd/t/wu_uc3.bmp";
 
@@ -4494,14 +10812,7 @@ f3 = 1.24f;
         }
     }
 
-
-
-
-   
-    
-
-
-#endif 
+#endif
 
 #if 0
     string fn = "d:/jd/t/git/dna-analysis/images/img/comp/new_rgb.jpg"; 
@@ -4537,13 +10848,7 @@ f3 = 1.24f;
 
     ci.s_i(img_y);
 
-
-
-
-
-
-
-#endif 
+#endif
 #if 0
 
     string fn = "d:/jd/t/rgb_y_comp.png"; 
@@ -4727,13 +11032,9 @@ auto b = kv.first[0];
     ci.s_i(img_yuc1);
 
 
-    cv::imwrite("d:/jd/t/git/dna-analysis/images/img/comp/new_y_test.jpg", img_yuc1); 
+    cv::imwrite("d:/jd/t/git/dna-analysis/images/img/comp/new_y_test.jpg", img_yuc1);
 
-
-
-    
-
-#endif 
+#endif
 
 #if 0
     string fn = "d:/jd/t/git/dna-analysis/images/img/comp/old_y.jpg";
@@ -4744,8 +11045,8 @@ auto b = kv.first[0];
 
 
 
-    // replace fn suffix with jpg 
-#endif 
+    // replace fn suffix with jpg
+#endif
 
 #if 0
     string fn = "d:/jd/t/3y.jpg";
@@ -4776,11 +11077,7 @@ auto b = kv.first[0];
 
     ci.s_i();
 
-
-
-
-
-#endif 
+#endif
 #if 0
     string fn = "d:/jd/t/test_mask_72.jpg";
 
@@ -4996,15 +11293,7 @@ auto b = kv.first[0];
 
     // count the non-zero num in ci_d_img_cut
 
-
-
-
-
-	
-
-
-
-#endif 
+#endif
 #if 0
 
     using cmap = unordered_map<int, vector<int>>; 
@@ -5062,10 +11351,7 @@ auto b = kv.first[0];
 
     print_id_map();
 
-
-
-
-#endif 
+#endif
 
 #if 0
     struct a {
@@ -5090,8 +11376,7 @@ auto b = kv.first[0];
     id_b.z = 999;
     cout << id_a.z << " " << id_b.z << endl;
 
-
-#endif 
+#endif
 #if 0
     vector<obj_data> vec_obj_data = {
         {2.2,2},
@@ -5111,11 +11396,7 @@ auto b = kv.first[0];
 
     hist_di(vec_obj_data);
 
-
-
-
-#endif 
-
+#endif
 
 #if 0
 
@@ -5124,10 +11405,7 @@ auto b = kv.first[0];
 
     tosvg("d:/jd/t/rgb_10_12.svg", x_value, y_value);
 
-
-
-
-#endif 
+#endif
 #if 0
     //string fn = "d:/jd/t/lena.bmp";
 
@@ -5174,13 +11452,7 @@ auto b = kv.first[0];
     gray_image *= 1.333; 
     ci.s_i(gray_image);
 
-
-
-
-
-
-
-#endif 
+#endif
 #if 0
     string fn = "d:/jd/t/color_test.jpg";
     ci.read_img(fn);
@@ -5194,9 +11466,7 @@ auto result = get_overlap_img(ci.img, cv::Rect(250, 100, 288, 298));
 
 int  t = 0;
 
-
-
-#endif 
+#endif
 #if 0
 
     string dirna="aaa";
@@ -5215,14 +11485,7 @@ int  t = 0;
 
     cout << (int)(t[1]) << endl;
 
-
-
-
-
-
-
-#endif 
-
+#endif
 
 #if 0
 
@@ -5247,8 +11510,7 @@ int  t = 0;
     p.get()[1] = 99;
     c_p[2] = 111;
 
-
-#endif 
+#endif
 #if 0
 
     char* cic = (char*)&ci; 
@@ -5266,8 +11528,8 @@ int  t = 0;
         assert(e == ci_str[cnt]);
         cnt++;
     }
-    
-#endif 
+
+#endif
 
 #if 0
     //cout << std::fmax(9L, 9.11)<<endl; 
@@ -5275,14 +11537,9 @@ int  t = 0;
     const char* a = "ABCD"; 
 
     string va(a, a + 2); 
-    cout << va << endl; 
+    cout << va << endl;
 
-
-
-
-
-
-#endif 
+#endif
 #if 0
     struct sA
     {
@@ -5298,12 +11555,9 @@ int  t = 0;
     };
 
     sA id_sa;
-    cout << id_sa.x << endl; 
+    cout << id_sa.x << endl;
 
-
-
-
-#endif 
+#endif
 #if 0
     cv::Mat id_mat(3, 3, CV_8UC(1)); 
     vector<uint8_t> vi{ 1,2,3,4,5,6,7,8,9 }; 
@@ -5312,11 +11566,9 @@ int  t = 0;
 
     uint8_t &a=  id_mat.at<uint8_t>(1, 1);
     uint8_t* pa = &a; 
-    cout << (int)(pa[0]) << " " << (int)(pa[1]) << endl; 
-    
+    cout << (int)(pa[0]) << " " << (int)(pa[1]) << endl;
 
-
-#endif 
+#endif
 #if 0
 
     string  dir = "D:/jd/t/dl/?嵌?/g0/";
@@ -5346,10 +11598,7 @@ int  t = 0;
 
     cv::imwrite(dir + "rgb.bmp", img_rgb);
 
-
-
-
-#endif 
+#endif
 
 #if 0
 
@@ -5378,12 +11627,9 @@ int  t = 0;
 
     //ci.s_i(img_rgb);
 
-    cv::imwrite(dir + "rgb.bmp", img_rgb); 
+    cv::imwrite(dir + "rgb.bmp", img_rgb);
 
-
-
-
-#endif 
+#endif
 #if 0
     float fa[9] = { 2,3,5,7, 9,8,1,0, 88 }; 
 
@@ -5395,14 +11641,14 @@ int  t = 0;
         cout << e << endl; 
     }
 
-#endif 
+#endif
 
 #if 0
     cv::Rect2i rec(1, 2, 325, 77);
     cout << rec.x << endl;
     cout << rec.y << endl; 
     cout << rec.width << endl;
-#endif 
+#endif
 
 #if 0
     // at is faster than row.col
@@ -5450,8 +11696,7 @@ int  t = 0;
         }
     }
 
-
-#endif 
+#endif
 #if 0
 
     //using cv_abs_fun = cv::abs; 
@@ -5469,8 +11714,7 @@ int  t = 0;
         
     }
 
-    
-#endif 
+#endif
 #if 0
 
 
@@ -5519,14 +11763,9 @@ int  t = 0;
 
     auto ci_d_img_cut = cv::Mat(ci.img, { 0,2056 }, { 0,2464 });  //{row},{col}
    
-    cv::imwrite(fn + ".bmp", ci_d_img_cut); 
+    cv::imwrite(fn + ".bmp", ci_d_img_cut);
 
-
-    
-   
-
-
-#endif 
+#endif
 
 #if 0
     string fn_0 = "d:/jd/t/img_rgb_cmp/_042_back_w.bmp"; 
@@ -5544,13 +11783,12 @@ int  t = 0;
 
     auto ci_d_img_cut = cv::Mat(ci_d_img, { 1333,1355 }, { 1155,1277 });
     cout << ci_d_img_cut << endl;
-    
 
-#endif 
+#endif
 #if 0
     string fn = "d:/jd/t/img_rgb_cmp/_007/_007_ok/d_rgb_w.jpg";
     ci.hist_img(fn);
-#endif 
+#endif
 
 #if 0
     string fn = "d:/jd/t/img_rgb_cmp/_007/_007_ok/d_rgb_w.jpg"; 
@@ -5602,10 +11840,8 @@ int  t = 0;
 
 
     cout << "ok" << endl;
-    
 
-#endif 
-
+#endif
 
 #if 0
     vector<string> v_fn = { "d:/jd/t/img_rgb_cmp/_007/_007_ok/_007_rgb.jpg", "d:/jd/t/img_rgb_cmp/_007/_007_ok/_007_w.jpg" };
@@ -5629,34 +11865,14 @@ int  t = 0;
 
     cv::imwrite("d:/jd/t/img_rgb_cmp/_007/_007_ok/d_rgb_w.jpg",d_ci);
 
-
-
-
-    
-
-
-
-
-
-
-
-   
-
-
-
-#endif 
-
+#endif
 
 #if 0
     string fn = "D:/jd/t/w_2464_h_2056_chn_11_si_9_fx_0_fy_0_tm_20240507_190652.dat";
 
     ci.read_cmyimage_11chn_add_dna(fn);
-    
 
-
-#endif 
-
-
+#endif
 
 #if 0
 
@@ -5720,12 +11936,8 @@ int  t = 0;
     //cv::flip(ci.img,ci.img, 0);
     //ci.s_i();
 
+#endif
 
-
-
-
-#endif 
-    
 #if 0
 
     string fn_img = "D:/jd/t/smb_share/t/img/_309/sz_ok/_309_y.bmp";
@@ -5734,8 +11946,7 @@ int  t = 0;
 
     cout << ci.img.channels() << endl;
 
-#endif 
-
+#endif
 
 #if 0
     ci.read_img("D:/jd/t/000000000724.jpg");
@@ -5746,8 +11957,7 @@ int  t = 0;
     ci.img = img_small;
     ci.s_i();
 
-
-#endif 
+#endif
 
 #if 0
     BYTE img_b[1024];
@@ -5761,10 +11971,7 @@ int  t = 0;
     int chn = 3;
     write_byte_2_bin("bin_", img_b, rows, cols, chn);
 
-
-
-
-#endif 
+#endif
 
 #if 0
 
@@ -5820,16 +12027,7 @@ int  t = 0;
         merge_bgr_to_color_batch(arr_fn[i], arr_fn_save[i]);
     }
 
-
-
-
-
-
-
-
-
-
-#endif 
+#endif
 #if 0
 
     vector<string> arr_fn =
@@ -5868,12 +12066,7 @@ int  t = 0;
 
     cv::imwrite("D:/jd/t/smb_share/1200vs500/1_bgr_1200_merge.jpg", color_img);
 
-
-
-
-
-
-#endif 
+#endif
 
 #if 0
 
@@ -5881,7 +12074,7 @@ int  t = 0;
 
     //ShellExecuteA(NULL, "open","notepad.exe", "NULL", NULL, SW_SHOW);
 
-#endif 
+#endif
 
 #if 0
 #include <unordered_map>
@@ -5921,8 +12114,7 @@ int  t = 0;
 
     cout << s_("{}", res) << endl;
 
-
-#endif 
+#endif
 
 #if 0
 
@@ -5958,8 +12150,7 @@ int  t = 0;
 
     u_o_m["i2"]("i2");
 
-
-#endif 
+#endif
 
 #if 0
 
@@ -5972,8 +12163,7 @@ int  t = 0;
 
     cout << s, cout << s, cout << s << endl;
 
-
-#endif 
+#endif
 #if 0
 
     vector<pair<int, int>> vpi{};
@@ -6053,12 +12243,7 @@ int  t = 0;
 
     cout << s_("{}", vi) << endl;
 
-
-
-
-
-
-#endif 
+#endif
 #if 0
     vector<tuple<int, float, string>> vif{};
     const int MAX_INT = 102;
@@ -6125,17 +12310,7 @@ int  t = 0;
 
     assert(t0 == t1);
 
-
-
-
-
-
-
-
-
-
-#endif 
-
+#endif
 
 #if 0
     string frombin = ci.read_bin_to_string("1.bin");
@@ -6161,15 +12336,7 @@ int  t = 0;
 
     }
 
-
-
-
-
-
-#endif 
-
-
-
+#endif
 
 #if 0
 
@@ -6294,7 +12461,6 @@ int  t = 0;
 
     cout << s_("{}", vi) << endl;
 
-
 #if 0
     auto vibuff = vi.data();
 
@@ -6303,20 +12469,15 @@ int  t = 0;
     of_.write((char*)vibuff, vi.size() * sizeof(int) * 2);
 
     of_.close();
-#endif 
+#endif
 
-
-
-
-#endif 
+#endif
 
 #if 0
     vector<int> vi{ 1,2,3,4 };
     cout << s_("{}", vi) << endl;
 
-
-
-#endif 
+#endif
 
 #if 0
     {
@@ -6408,10 +12569,7 @@ int  t = 0;
 
     }
 
-
-
-
-#endif 
+#endif
 #if 0
     bitset<8> a(42);
     cout << a << endl;
@@ -6420,12 +12578,12 @@ int  t = 0;
     auto blong = b.to_ullong();
     cout << blong << endl;
     cout << b[0] << endl;
-#endif 
+#endif
 
 #if 0
     vector<cv::Point2i> vp{ {0,0},{10,0},{0,5}, {0,2} ,{-2,0} };
     ci.area_contour(vp);
-#endif 
+#endif
 #if 0
     vector<vector<int>> vi{ {0,0},{10,0},{0,5}, {0,2} ,{-2,0} };
     int cnt = 0;
@@ -6442,7 +12600,7 @@ int  t = 0;
     }
 
     cout << sum * 1 / 2 << endl;
-#endif 
+#endif
 
 #if 0
     auto* s = "abcdefg";
@@ -6456,9 +12614,7 @@ int  t = 0;
 
     cout << sb << endl;
 
-
-#endif 
-
+#endif
 
 #if 0
     vector<string> v_fn = { "./t0/overlay.bmp", "./t1/overlay.bmp" };
@@ -6502,16 +12658,13 @@ int  t = 0;
 
     assert(0 == 1);
 
-
-#endif 
+#endif
 #if 0
     //string fn = "H:\\tlq\\tmp_\\t3\\w_2464_h_2056_chn_11_si_8_fx_3_fy_3_tm_20231017_153232.dat";
     string fn = "H:\\tlq\\tmp_\\t3\\w_2464_h_2056_chn_11_si_8_fx_3_fy_3_tm_20231017_153233.dat";
     ci.read_cmyimage(fn);
 
-
-
-#endif 
+#endif
 
 #if 0
 
@@ -6521,8 +12674,7 @@ int  t = 0;
     auto s = ci.get_timestamp();
     cout << s << endl;
 
-
-#endif 
+#endif
 #if 0
 
     ci.read_img(".\\rgbdata.jpg");
@@ -6560,10 +12712,7 @@ int  t = 0;
 
     assert(0 == 1);
 
-
-
-
-#endif 
+#endif
 
 #if 0
     string fn = "rgbdata.jpg";
@@ -6591,11 +12740,7 @@ int  t = 0;
 
     assert(0 == 1);
 
-
-#endif 
-
-
-
+#endif
 
 #if 0
 
@@ -6603,8 +12748,6 @@ int  t = 0;
 
     string fn = dirname + "t0_133\\w_2464_h_2056_chn_11_si_8_fx_3_fy_4_tm_20230808_124322.dat";
     ci.read_cmyimage(fn);
-
-
 
 #if 0
     int w = 2464;
@@ -6644,20 +12787,9 @@ int  t = 0;
     {
         ci.s_i(em);
     }
-#endif 
+#endif
 
-
-
-#endif 
-
-
-
-
-
-
-
-
-
+#endif
 
 #if 0
     string fn = "D:\\jd\\t\\yh_rgb.jpg";
@@ -6679,8 +12811,7 @@ int  t = 0;
     cout << "- ok" << endl;
     assert(0 == 1);
 
-
-#endif 
+#endif
 
 #if 0
 
@@ -6702,14 +12833,14 @@ int  t = 0;
 
     //findContours(ci.img, contours0, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
     cv::findContours(ci.img, contours0, RETR_EXTERNAL, CHAIN_APPROX_NONE);
-#endif 
+#endif
 #if 0
     for (auto& ep : contours0)
     {
         cout << ep << endl;
         cout << endl;
     }
-#endif 
+#endif
 
 #if 0
     auto img_cp = ci.img.clone();
@@ -6777,21 +12908,12 @@ int  t = 0;
     Mat img_ = img_cp * 0.7 + ci.img * 0.3;
     ci.s_i(img_);
 
-
-
-
-
-
-
-
-#endif 
+#endif
 
 #if 0
     ns0::id_mat;
 
-
 #endif
-
 
 #if 0
     string fn = "D:\\jd\\t\\big_merge.jpg";
@@ -6814,7 +12936,7 @@ int  t = 0;
     ci.img;
     assert(0 == 1);
 
-#endif 
+#endif
 
 #if 0
 
@@ -6867,14 +12989,11 @@ int  t = 0;
 
     assert(0 == 1);
 
-
-
-#endif 
+#endif
 
 #if 0
     ci.td_sleep(0.01);
 #endif
-
 
 #if 0
     float a = 9;
@@ -6882,8 +13001,7 @@ int  t = 0;
     float c = a / (0.1, (a == 9) && (b = 6), a);
 
     cout << b << endl;
-#endif 
-
+#endif
 
 #if 0
     auto img = cv::Mat::eye(4, 4, 0);
@@ -6892,7 +13010,7 @@ int  t = 0;
     cv::flip(m, m, 0); // vert
     cout << m << endl;
 
-#endif 
+#endif
 #if 0
     auto rows = 2056;
     auto cols = 2464;
@@ -6940,14 +13058,7 @@ int  t = 0;
 
     assert(0 == 1);
 
-
-
-
-
-
-
-
-#endif 
+#endif
 
 #if 0
     char buf[1024] = { 0 };
@@ -6967,9 +13078,7 @@ int  t = 0;
         cout << perl_p << endl;
     }
 
-#endif 
-
-
+#endif
 
 #if 0
 
@@ -6991,7 +13100,7 @@ int  t = 0;
         cout << "- end" << endl;
     }
 
-#endif 
+#endif
 #if 0
 
 
@@ -7022,8 +13131,7 @@ int  t = 0;
     id_td0.join();
     id_td1.join();
 
-
-#endif 
+#endif
 #if 0
     cout << ci.get_env("VSAPPIDNAME") << endl;;
 
@@ -7033,13 +13141,11 @@ int  t = 0;
     auto ww = (w * 3 + 3) / 4 * 4;
     cout << ww << endl;
 
-
-
-#endif 
+#endif
 #if 0
     A* pa = A::getA();
     pa->func();
-#endif 
+#endif
 
 #if 0
 
@@ -7052,8 +13158,7 @@ int  t = 0;
     cout << string(buf).size() << endl;
     cout << string(buf) << endl;
 
-
-#endif 
+#endif
 
 #if 0
 
@@ -7106,8 +13211,7 @@ int  t = 0;
 
     assert(0 == 1);
 
-
-#endif 
+#endif
 
 #if 0
     ci.read_img("./bin_r.jpg");
@@ -7155,7 +13259,7 @@ int  t = 0;
     assert(0 == 1);
 
     //ci.s_i();
-#endif 
+#endif
 
 #if 0
     RNG id_rng(time(NULL));
@@ -7176,10 +13280,9 @@ int  t = 0;
 
 
 
-    //ci.s_i(img_b); 
+    //ci.s_i(img_b);
 
-#endif 
-
+#endif
 
 #if 0
 
@@ -7237,8 +13340,7 @@ int  t = 0;
 
     assert(0 == 1);
 
-
-#endif 
+#endif
 
 #if 0
     RNG id_rng(time(NULL));
@@ -7257,9 +13359,7 @@ int  t = 0;
     //auto s = ci.get_env("VSAPPIDNAME");
     //cout << s << endl;
 
-
-
-#endif 
+#endif
 #if 0
 
     cv::Mat img(20, 20, CV_8UC(1), cv::Scalar(255));
@@ -7273,7 +13373,7 @@ int  t = 0;
 
     cout << img_2 << endl;
 
-#endif 
+#endif
 #if 0
 
     string ts = get_current_time();
@@ -7281,8 +13381,7 @@ int  t = 0;
     assert(0 == 1);
     return 0;
 
-#endif 
-
+#endif
 
 #if 0
 
@@ -7367,8 +13466,6 @@ int  t = 0;
     auto& overlay_ = v_mat[idx++];
     auto& contour_ = v_mat[idx++];
 
-
-
 #if 0
     cv::imwrite("rgbdata.jpg", rgb);
 
@@ -7393,7 +13490,6 @@ int  t = 0;
 
 
     cout << "- end " << endl;
-
 
 #endif
 
@@ -7421,12 +13517,7 @@ int  t = 0;
 
     assert(0 == 1);
 
-
-
-#endif 
-
-
-
+#endif
 
 #if 0
     cimg ci;
@@ -7439,15 +13530,7 @@ int  t = 0;
 
     }
 
-
-
-
-
-
-
-#endif 
-
-
+#endif
 
 #if 0
     char buf_res[1024] = { 0 };
@@ -7459,8 +13542,7 @@ int  t = 0;
     assert(0 == 1);
     //string fn = "D:\\jd\\t\\lena128.bmp";
 
-#endif 
-
+#endif
 
 #if 0
     string fn = "D:\\ff.jpg";
@@ -7500,8 +13582,7 @@ int  t = 0;
 
     v_mat;
 
-#endif 
-
+#endif
 
 #if 0
     for (auto r = ys; r < ye; r++)
@@ -7510,15 +13591,9 @@ int  t = 0;
 
     }
 
-#endif 
+#endif
 
-
-
-
-
-
-    //ci.cvtcolor("GRAY"); 
-
+    // ci.cvtcolor("GRAY");
 
 #if 0
     //cv::adaptiveThreshold(ci.img, ci.img, );
@@ -7532,15 +13607,7 @@ int  t = 0;
 
     ci.s_i();
 
-
-
-#endif 
-
-
-
-
-
-
+#endif
 
 #if 0
 
@@ -7562,29 +13629,20 @@ int  t = 0;
 
     //ci.read_bin_to_mat("d:\\2.dat", 120, 120, 1);
 
-    //ci.write_mat_to_txt("d:\\1.txt"); 
+    //ci.write_mat_to_txt("d:\\1.txt");
 
+#endif
 
-#endif 
+    // vector<Mat> _3chn_img;
 
+    // cv::split(ci.img, _3chn_img);
 
-    //vector<Mat> _3chn_img; 
+    // cv::cvtColor(ci.img, ci.img, cv::COLOR_RGB2GRAY);
 
-    //cv::split(ci.img, _3chn_img);
+    // ci.img;
+    // ci.s_i();
 
-    //cv::cvtColor(ci.img, ci.img, cv::COLOR_RGB2GRAY);
-
-
-
-
-
-
-    //ci.img;
-    //ci.s_i();
-
-
-
-    //ci.si();
+    // ci.si();
 
 #if 0
 
@@ -7592,9 +13650,8 @@ int  t = 0;
     ci.img;
 
     ci.write_mat_to_txt("d:\\1.txt");
-#endif 
-    //ci.s_i();
-
+#endif
+    // ci.s_i();
 
 #if 0
     char* buf = new char[1024];
@@ -7620,30 +13677,18 @@ int  t = 0;
 
     cout << buf_r0 << endl;
 
-#endif 
+#endif
 
-
-
-
-
-
-
-    //std::cout << "Hello World!\n";
-
+    // std::cout << "Hello World!\n";
 
     // system("pause");
-
 }
-
-
 
 #if 1
 
 // scanapp_ cpp start
 scanapp::scanapp()
 {
-
-
 }
 // scanapp_ cpp end
 
@@ -7657,12 +13702,11 @@ scandlg::scandlg()
 stage::stage()
 {
 }
-stage* stage::get_stage()
+stage *stage::get_stage()
 {
     if (id_stage == nullptr)
     {
-        init(); 
-        
+        init();
     }
     return id_stage;
 }
@@ -7677,10 +13721,9 @@ measure::measure()
 }
 // measure_ cpp end
 
-
 // dbmgr_ cpp start
 dbmgr::dbmgr()
 {
 }
 // dbmgr_ cpp end
-#endif 
+#endif
