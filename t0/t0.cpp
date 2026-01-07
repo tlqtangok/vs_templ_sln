@@ -107,28 +107,25 @@ public:
     void cvtcolor(string colormode = "GRAY");
     void s_i(cv::Mat &id_img);
     void s_i(); // show img on GUI
-    string read_bin_to_string(string fn);
+    string bin_file_to_str(const string & fn);
     void read_bin_to_mat(string fn, int rows, int cols, int channels);
     void write_mat_to_bin(string fn);
     void write_mat_to_txt(string filename, int flag);
-    void fcout(string fn, string id_s, string flag_w = "ios::out");   // str2txt str2bin can use
-    void fcoutln(string fn, string id_s, string flag_w = "ios::out"); // str2txt str2bin can use
+    void fcout(string fn, const string & id_s, string flag_w = "ios::out");   // str2txt str2bin can use
+    void fcoutln(string fn, const string& id_s, string flag_w = "ios::out"); // str2txt str2bin can use
     void write_mat_to_csv(string fn);
-    void str_to_bin_file(string fn, string &str_to_serial);
-    std::vector<std::string> filter_out_vstr(std::vector<std::string>& vstr, const std::string& pattern);
-    std::vector<std::string> filter_vstr(std::vector<std::string>& vstr, const std::string& pattern);
+    void str_to_bin_file(string fn, const string &str_to_serial);
 
-    template <typename T> std::vector<T> combine_vec(const std::vector<T> &v0, const std::vector<T> &v1);
+    std::vector<std::string> vec_grep_v(std::vector<std::string>& vstr, const std::string& pattern);
+    std::vector<std::string> vec_grep(std::vector<std::string>& vstr, const std::string& pattern);
 
-    template <typename T> T sum_vec(const vector<T> &v);
-    template <typename T> float mean_vec(const vector<T> &v);
-    template <typename T> float stddev_vec(const vector<T> &v);
-
-    template <typename T> std::vector<T> smooth_vec(const vector<T>& v, int win_sz);
-
-    template<typename T> std::vector<T> norm_vec_by_minmax(const vector<T>& v);
-    
-    template <typename T> vector<T> diff_v(const vector<T> &v);
+    template <typename T> std::vector<T> vec_combine(const std::vector<T> &v0, const std::vector<T> &v1);
+    template <typename T> T vec_sum(const vector<T> &v);
+    template <typename T> float vec_mean(const vector<T> &v);
+    template <typename T> float vec_stddev(const vector<T> &v);
+    template <typename T> std::vector<T> vec_smooth(const vector<T>& v, int win_sz);
+    template<typename T> std::vector<T> vec_norm_by_minmax(const vector<T>& v);
+    template <typename T> vector<T> vec_diff(const vector<T> &v);
 
     void serial_to_mat(const string &fn);
     void deserial_from_mat(const string &fn);
@@ -141,7 +138,9 @@ public:
     cv::Mat get_rectangle_mat(cv::Mat &id_m32, int start_rows, int end_rows, int start_cols, int end_cols);
     void read_cmyimage(string fn);
     string get_timestamp();
-    string run_cmd(string cmd_);
+    string run_cmd_simple(string cmd_);
+    std::unordered_map<std::string, std::string> run_cmd(const std::string & cmd);   // ans has key: code, stdout, stderr, err
+    
     string get_env(string env_name);
     void td_sleep(double seconds);
     double area_contour(vector<cv::Point2i> &vp);
@@ -169,7 +168,7 @@ public:
     vector<int> R(int endi);
 
     string norm_path(const std::string& path);
-    string abspath(const std::string & path);
+    string abs_path(const std::string & path);
     bool endwith(const std::string & src, const std::string & suffix); 
     string toupper(const string & str);
     string tolower(const string & str);
@@ -180,14 +179,47 @@ public:
     cv::Rect expand_rect(const cv::Rect& rect, float expand_ratio, const cv::Mat& img);
     void img2hsv(const cv::Mat &inputImage);
     void byte2cvmat(byte *src, int rows, int cols, int chn, cv::Mat &id_mat);
-    d_ts ts();
-    d_ts ts(d_ts & d_ts_t0);
+    d_ts ts0();
+    d_ts ts1(d_ts & d_ts_t0);
+
+    bool fs_e(const std::string & fn);
+    bool fs_f(const std:: string & fn);
+    bool fs_d(const std::string & fn);
+    bool fs_rm(const std::string & fn);
+    bool fs_touch(const std::string & fn);
+    std::unordered_map<std::string, std::string> fs_stat(const std::string & fn);
+    uintmax_t fs_du(const std::string & fn);
+    bool fs_mv(const std::string & from, const std:: string & to);
+    
+    std::string ts2str(const std::filesystem::file_time_type & ftime);  // time_t to string
+    bool fs_cp(const std:: string & from, const std::string & to);
+    std::vector<std::string> fs_ls(const std::string & dir_path, const std::string & pattern = "");
+    std::vector<std::string> fs_ls_r(const std::string & dir_path, const std::string & pattern = "");
+    
 
     std::unordered_map<std::string, std::string> parse_args(int argc, char** argv, const unordered_map<string, string>& arg_map_default = {}, const string& help_msg_ = "");
 
     template <typename T> string serial_struct_2_str(T &pt);
+    template<typename T> T str_to_struct(const std::string & bin_str);
     template <typename T> string serial_p_2_str(T *cstr, size_t sz);
+    
 };
+
+
+template<typename T>
+T cimg::str_to_struct(const std::string & bin_str)
+{
+    T result;
+    if (bin_str.size() >= sizeof(T))
+    {
+        std::memcpy(&result, bin_str.data(), sizeof(T));
+    }
+    else
+    {
+        std::memset(&result, 0, sizeof(T));
+    }
+    return result;
+}
 
 template <typename T>
 string cimg::serial_struct_2_str(T &pt)
@@ -802,7 +834,100 @@ string cimg::get_env(string env_name)
     return str_buf;
 }
 
-string cimg::run_cmd(string cmd_)
+std::unordered_map<std::string, std::string> cimg::run_cmd(const std::string & cmd)
+{
+
+    std::unordered_map<std::string, std::string> result;
+    // result has key: stdout, stderr, code, err
+    try
+    {
+#ifdef _WIN32
+        // create temporary files for stdout and stderr
+        char temp_path[MAX_PATH];
+        GetTempPathA(MAX_PATH, temp_path);
+        
+        std::string stdout_file = std::string(temp_path) + "stdout_" + std::to_string(GetCurrentProcessId()) + ".txt";
+        std::string stderr_file = std::string(temp_path) + "stderr_" + std:: to_string(GetCurrentProcessId()) + ".txt";
+        
+        // build command with redirection
+        std::string full_cmd = cmd + " > \"" + stdout_file + "\" 2> \"" + stderr_file + "\"";
+        
+        // execute command
+        int exit_code = system(full_cmd.c_str());
+        result["code"] = std::to_string(exit_code);
+        
+        // read stdout
+        std::ifstream out_stream(stdout_file, std::ios::binary);
+        if (out_stream)
+        {
+            std::stringstream buffer;
+            buffer << out_stream.rdbuf();
+            result["stdout"] = buffer.str();
+            out_stream.close();
+        }
+        
+        // read stderr
+        std::ifstream err_stream(stderr_file, std::ios::binary);
+        if (err_stream)
+        {
+            std::stringstream buffer;
+            buffer << err_stream.rdbuf();
+            result["stderr"] = buffer.str();
+            err_stream.close();
+        }
+        
+        // cleanup temp files
+        DeleteFileA(stdout_file.c_str());
+        DeleteFileA(stderr_file.c_str());
+        
+#else
+        // Unix/Linux implementation
+        std::string stdout_file = "/tmp/stdout_" + std::to_string(getpid()) + ".txt";
+        std::string stderr_file = "/tmp/stderr_" + std::to_string(getpid()) + ".txt";
+        
+        std::string full_cmd = cmd + " > " + stdout_file + " 2> " + stderr_file;
+        
+        int exit_code = system(full_cmd.c_str());
+        result["code"] = std::to_string(WEXITSTATUS(exit_code));
+        
+        // read stdout
+        std::ifstream out_stream(stdout_file, std::ios::binary);
+        if (out_stream)
+        {
+            std::stringstream buffer;
+            buffer << out_stream.rdbuf();
+            result["stdout"] = buffer.str();
+            out_stream.close();
+        }
+        
+        // read stderr
+        std::ifstream err_stream(stderr_file, std::ios::binary);
+        if (err_stream)
+        {
+            std::stringstream buffer;
+            buffer << err_stream.rdbuf();
+            if (buffer.str().size() > 0)
+            {
+                result["stderr"] = buffer.str();
+            }
+            err_stream.close();
+        }
+        
+        // cleanup temp files
+        unlink(stdout_file.c_str());
+        unlink(stderr_file.c_str());
+#endif
+    }
+    catch (const std::exception & e)
+    {
+        result["err"] = e.what();
+    }
+    
+    return result;
+}
+
+
+string cimg::run_cmd_simple(string cmd_)
 {
     // windows pipe _popen()
     const int TO_READ_SZ = 10240;
@@ -837,7 +962,7 @@ void cimg::read_cmyimage_11chn_add_dna(string fn)
     int &cols = w;
     int &rows = h;
 
-    string bin_content = read_bin_to_string(fn);
+    string bin_content = bin_file_to_str(fn);
     assert(bin_content.size() == 12 * rows * cols);
 
     uchar *imgdata_r0 = (uchar *)bin_content.data();
@@ -915,7 +1040,7 @@ void cimg::read_cmyimage(string fn)
     int &cols = w;
     int &rows = h;
 
-    string bin_content = read_bin_to_string(fn);
+    string bin_content = bin_file_to_str(fn);
     assert(bin_content.size() == 8 * rows * cols);
 
     uchar *imgdata = (uchar *)bin_content.data();
@@ -1175,7 +1300,7 @@ void cimg::write_mat_to_txt(string filename, int flag = 0)
     of_.close();
 }
 
-void cimg::fcoutln(string fn, string id_s, string flag_w)
+void cimg::fcoutln(string fn,const string& id_s, string flag_w)
 {
     auto F_W = ios::out | ios::trunc;
     if (flag_w == "ios::app")
@@ -1195,7 +1320,7 @@ void cimg::fcoutln(string fn, string id_s, string flag_w)
     if_.close();
 }
 
-void cimg::fcout(string fn, string id_s, string flag_w)
+void cimg::fcout(string fn,const string& id_s, string flag_w)
 {
     auto F_W = ios::out | ios::trunc;
     if (flag_w == "ios::app")
@@ -1230,7 +1355,7 @@ void cimg::write_mat_to_csv(string fn)
     }
 }
 
-void cimg::str_to_bin_file(string fn, string &str_to_serial)
+void cimg::str_to_bin_file(string fn, const string &str_to_serial)
 {
     ofstream of_(fn.c_str(), ios::binary);
     of_ << str_to_serial; // never have "<< endl";
@@ -1238,7 +1363,7 @@ void cimg::str_to_bin_file(string fn, string &str_to_serial)
 }
 
 
-std::vector<std::string> cimg::filter_out_vstr(std::vector<std::string>& vstr, const std::string& pattern) 
+std::vector<std::string> cimg::vec_grep_v(std::vector<std::string>& vstr, const std::string& pattern) 
 {
     // vstr = ci.filter_out_vstr(vstr, R"(^#.*)");
     std::regex regex_pattern(pattern);
@@ -1363,7 +1488,381 @@ string cimg::norm_path(const std::string& path)
     return normalized.string();
 }
 
-d_ts cimg::ts()
+
+namespace fs = std::filesystem;
+
+bool cimg::fs_e(const std::string & fn)
+{
+    return fs::exists(fn);
+}
+
+bool cimg::fs_f(const std::string & fn)
+{
+    return fs::exists(fn) && fs::is_regular_file(fn);
+}
+
+bool cimg::fs_d(const std::string & fn)
+{
+    return fs::exists(fn) && fs::is_directory(fn);
+}
+
+bool cimg::fs_rm(const std::string & fn)
+{
+    try
+    {
+        if (fs::exists(fn))
+        {
+            if (fs::is_directory(fn))
+            {
+                fs:: remove_all(fn);
+            }
+            else
+            {
+                fs::remove(fn);
+            }
+            return true;
+        }
+        return false;
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+bool cimg::fs_touch(const std::string & fn)
+{
+    try
+    {
+        fs::path p(fn);
+        
+        // create parent directories if not exist
+        if (p.has_parent_path())
+        {
+            fs::path parent = p.parent_path();
+            if (! fs::exists(parent))
+            {
+                fs::create_directories(parent);
+            }
+        }
+        
+        if (fs::exists(fn))
+        {
+            fs::last_write_time(fn, fs:: file_time_type:: clock::now());
+            return true;
+        }
+        else
+        {
+            std::ofstream ofs(fn);
+            if (ofs)
+            {
+                ofs.close();
+                return true;
+            }
+            return false;
+        }
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+std::string cimg::ts2str(const fs::file_time_type & ftime)
+{
+    auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+        ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now()
+    );
+    std::time_t tt = std:: chrono::system_clock::to_time_t(sctp);
+    std::tm tm;
+    
+#ifdef _WIN32
+    localtime_s(&tm, &tt);
+#else
+    localtime_r(&tt, &tm);
+#endif
+    
+    char buf[64];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+    return std::string(buf);
+}
+
+std::unordered_map<std::string, std::string> cimg::fs_stat(const std::string & fn)
+{
+    std::unordered_map<std:: string, std::string> result;
+    
+    try
+    {
+        if (! fs::exists(fn))
+        {
+            result["err"] = "not_exist";
+            return result;
+        }
+        
+        result["path"] = fn;
+        result["type"] = fs::is_directory(fn) ? "dir" : "file";
+        result["size"] = std::to_string(fs::file_size(fn));
+        result["mtime"] = ts2str(fs::last_write_time(fn));
+        
+        auto perms = fs::status(fn).permissions();
+        std::stringstream ss;
+        ss << std::oct << static_cast<int>(perms);
+        result["perm"] = ss.str();
+        
+        // get atime and ctime using platform-specific API
+#ifdef _WIN32
+        struct _stat64 st;
+        if (_stat64(fn.c_str(), &st) == 0)
+        {
+            char buf[64];
+            std:: tm tm;
+            
+            // access time
+            localtime_s(&tm, &st.st_atime);
+            std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+            result["atime"] = std::string(buf);
+            
+            // create time (birth time on Windows)
+            localtime_s(&tm, &st.st_ctime);
+            std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+            result["ctime"] = std::string(buf);
+        }
+#else
+        struct stat st;
+        if (stat(fn.c_str(), &st) == 0)
+        {
+            char buf[64];
+            std::tm tm;
+            
+            // access time
+            localtime_r(&st.st_atime, &tm);
+            std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+            result["atime"] = std:: string(buf);
+            
+            // change time (or birth time if available)
+#ifdef __APPLE__
+            localtime_r(&st.st_birthtime, &tm);
+#else
+            localtime_r(&st.st_ctime, &tm);
+#endif
+            std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+            result["ctime"] = std::string(buf);
+        }
+#endif
+    }
+    catch (const std::exception & e)
+    {
+        result["err"] = e.what();
+    }
+    
+    return result;
+}
+
+bool cimg::fs_mv(const std::string & from, const std:: string & to)
+{
+    try
+    {
+        if (! fs::exists(from))
+        {
+            return false;
+        }
+        
+        fs:: path from_path(from);
+        fs::path to_path(to);
+        
+        // create parent directories of destination if not exist
+        if (to_path. has_parent_path())
+        {
+            fs::path parent = to_path.parent_path();
+            if (! fs::exists(parent))
+            {
+                fs::create_directories(parent);
+            }
+        }
+        
+        // if destination is an existing directory, move into it
+        if (fs::exists(to) && fs::is_directory(to))
+        {
+            to_path = to_path / from_path.filename();
+        }
+        
+        // if destination exists, remove it first
+        if (fs::exists(to_path))
+        {
+            if (fs::is_directory(to_path))
+            {
+                fs::remove_all(to_path);
+            }
+            else
+            {
+                fs::remove(to_path);
+            }
+        }
+        
+        // rename/move the file or directory
+        fs::rename(from, to_path);
+        
+        return true;
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+std::vector<std::string> cimg::fs_ls(const std::string & dir_path, const std::string & pattern)
+{
+    return get_folder_content(dir_path, pattern, "all", false);
+}
+
+std::vector<std::string> cimg:: fs_ls_r(const std::string & dir_path, const std::string & pattern)
+{
+    // cout_("dir_path:{}, pattern:{}\n", dir_path, pattern);
+    return get_folder_content(dir_path, pattern, "all", true);
+}
+
+bool cimg::fs_cp(const std::string & from, const std::string & to)
+{
+    try
+    {
+        if (! fs::exists(from))
+        {
+            return false;
+        }
+        
+        fs::path from_path(from);
+        fs::path to_path(to);
+        
+        // create parent directories of destination if not exist
+        if (to_path. has_parent_path())
+        {
+            fs::path parent = to_path.parent_path();
+            if (! fs::exists(parent))
+            {
+                fs::create_directories(parent);
+            }
+        }
+        
+        if (fs::is_directory(from))
+        {
+            // if destination exists and is not a directory, remove it
+            if (fs::exists(to) && ! fs::is_directory(to))
+            {
+                fs::remove(to);
+            }
+            
+            // copy directory recursively
+            if (!  fs::exists(to))
+            {
+                fs::create_directories(to);
+            }
+            
+            for (const auto & entry : fs::recursive_directory_iterator(from))
+            {
+                fs::path rel_path = fs::relative(entry.path(), from);
+                fs::path dest_path = to_path / rel_path;
+                
+                if (fs::is_directory(entry))
+                {
+                    fs:: create_directories(dest_path);
+                }
+                else
+                {
+                    if (dest_path.has_parent_path())
+                    {
+                        fs::create_directories(dest_path.parent_path());
+                    }
+                    fs::copy_file(entry. path(), dest_path, fs::copy_options::overwrite_existing);
+                }
+            }
+        }
+        else
+        {
+            // if destination is a directory, copy file into it
+            if (fs::exists(to) && fs::is_directory(to))
+            {
+                to_path = to_path / from_path.filename();
+            }
+            
+            // copy single file
+            fs::copy_file(from, to_path, fs::copy_options::overwrite_existing);
+        }
+        
+        return true;
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+uintmax_t cimg::fs_du(const std::string & fn)
+{
+
+    auto calc_dir_size = [](const std:: string & fn)
+    {
+        uintmax_t total = 0;
+
+        try
+        {
+            for (const auto & entry : fs:: recursive_directory_iterator(fn))
+            {
+                if (fs::is_regular_file(entry))
+                {
+                    total += fs::file_size(entry);
+                }
+            }
+        }
+        catch (...)
+        {
+        }
+
+        return total;
+    };
+
+    
+    std::unordered_map<std::string, std:: string> result;
+    
+    try
+    {
+        if (! fs::exists(fn))
+        {
+            result["err"] = "not_exist";
+        }
+        
+        uintmax_t total_size = 0;
+        
+        if (fs::is_directory(fn))
+        {
+            total_size = calc_dir_size(fn);
+        }
+        else
+        {
+            total_size = fs::file_size(fn);
+        }
+        
+        result["path"] = fn;
+        result["bytes"] = std::to_string(total_size);
+        result["kb"] = std::to_string(total_size / 1024);
+        result["mb"] = std::to_string(total_size / (1024 * 1024));
+    }
+    catch (const std:: exception & e)
+    {
+        result["err"] = e. what();
+    }
+
+    if (result.find("err") != result.end())
+    {
+        // std::cerr << "- fs_du error: " << result["err"] << "\t" << fn << std::endl;
+        throw std::runtime_error(result["err"]);
+        return -1;
+    }
+
+    
+    return result["bytes"].empty() ? -1 : std::stoi(result["bytes"]);
+}
+
+d_ts cimg::ts0()
 {
     auto tick_v = GetTickCount64(); 
     d_ts e_d_ts; 
@@ -1372,7 +1871,7 @@ d_ts cimg::ts()
     return e_d_ts;
 }
 
-d_ts cimg::ts(d_ts & stru_t0)
+d_ts cimg::ts1(d_ts & stru_t0)
 {  
     
 
@@ -1395,7 +1894,7 @@ d_ts cimg::ts(d_ts & stru_t0)
 
     e_d_ts.hour = d_ts_t;
 
-    e_d_ts.s_d = s_("{:2}h {:2}m {:2}s {:3}ms", e_d_ts.hour, e_d_ts.minute, e_d_ts.second, e_d_ts.ms);
+    e_d_ts.s_d = s_("{:2}h{:2}m{:2}s{:4}ms", e_d_ts.hour, e_d_ts.minute, e_d_ts.second, e_d_ts.ms);
 	cout << "time cost: " << e_d_ts.s_d << endl;
 
     return e_d_ts;
@@ -1544,7 +2043,7 @@ bool cimg::endwith(const std::string& str, const std::string& suffix)
     }
 }
 
-std::string cimg::abspath(const std::string& path)
+std::string cimg::abs_path(const std::string& path)
 {
     fs::path p(path);
     fs::path abs_path = fs::absolute(p);
@@ -1557,7 +2056,7 @@ std::vector<std::string> cimg::get_folder_content(const string& dir_path, const 
 {
     std::vector<std::string> result;
 
-    cout << "args:" << dir_path << ", " << pattern << ", " << type << "," << recursive << endl;
+    cout_("dir_path:{}, pattern:{}, type:{}, recursive:{}\n", dir_path, pattern, type, recursive);
 
     if (! fs::exists(dir_path) || !fs::is_directory(dir_path))
     {
@@ -1624,7 +2123,7 @@ std::vector<std::string> cimg::get_folder_content(const string& dir_path, const 
 
 
 
-std::vector<std::string> cimg::filter_vstr(std::vector<std::string>& vstr, const std::string& pattern) 
+std::vector<std::string> cimg::vec_grep(std::vector<std::string>& vstr, const std::string& pattern) 
 {
     std::regex regex_pattern(pattern);
     vstr.erase(
@@ -1638,7 +2137,7 @@ std::vector<std::string> cimg::filter_vstr(std::vector<std::string>& vstr, const
 }
 
 template <typename T>
-std::vector<T> cimg::norm_vec_by_minmax(const vector<T>& v)
+std::vector<T> cimg::vec_norm_by_minmax(const vector<T>& v)
 {
 
     auto v_min = *std::min_element(v.begin(), v.end());
@@ -1652,7 +2151,7 @@ std::vector<T> cimg::norm_vec_by_minmax(const vector<T>& v)
 }
 
 template <typename T>
-std::vector<T> cimg::smooth_vec(const std::vector<T> &v, int window_size)
+std::vector<T> cimg::vec_smooth(const std::vector<T> &v, int window_size)
 {
     assert(window_size > 2); // Ensure window size is positive and odd
     int half_window = window_size / 2;
@@ -1682,7 +2181,7 @@ std::vector<T> cimg::smooth_vec(const std::vector<T> &v, int window_size)
 
 
 template <typename T>
-std::vector<T> cimg::combine_vec(const std::vector<T> &v0, const std::vector<T> &v1)
+std::vector<T> cimg::vec_combine(const std::vector<T> &v0, const std::vector<T> &v1)
 {
     // Preallocate the combined vector with the total size of both input vectors
     std::vector<T> combined;
@@ -1697,7 +2196,7 @@ std::vector<T> cimg::combine_vec(const std::vector<T> &v0, const std::vector<T> 
 }
 
 template <typename T>
-T cimg::sum_vec(const vector<T> &v)
+T cimg::vec_sum(const vector<T> &v)
 {
 
     T sum = 0;
@@ -1710,7 +2209,7 @@ T cimg::sum_vec(const vector<T> &v)
 }
 
 template <typename T>
-vector<T> cimg::diff_v(const vector<T> &v)
+vector<T> cimg::vec_diff(const vector<T> &v)
 {
     assert(v.size() >= 2);
     std::vector<T> diff_p(v.size());
@@ -1720,10 +2219,10 @@ vector<T> cimg::diff_v(const vector<T> &v)
 }
 
 template <typename T>
-float cimg::stddev_vec(const vector<T> &v)
+float cimg::vec_stddev(const vector<T> &v)
 {
     float sumOfSquares = 0.0f;
-    auto mean = mean_vec(v);
+    auto mean = vec_mean(v);
 
     for (float num : v)
     {
@@ -1734,12 +2233,12 @@ float cimg::stddev_vec(const vector<T> &v)
 }
 
 template <typename T>
-float cimg::mean_vec(const vector<T> &v)
+float cimg::vec_mean(const vector<T> &v)
 {
 
     float sum = 0.0f;
 
-    sum += sum_vec(v);
+    sum += vec_sum(v);
 
     return sum * 1.0f / v.size();
 }
@@ -1791,7 +2290,7 @@ void cimg::write_mat_to_bin(string fn)
 
     of_.close();
 }
-string cimg::read_bin_to_string(string fn)
+string cimg::bin_file_to_str(const string & fn)
 {
 
     // first get fn size
@@ -2043,8 +2542,8 @@ void cal_range_by_ref( unordered_map<string, csv_data>& csvdata, int peak_valley
 
         auto e_csv_data_r0 = e_csv_data.r;
 
-        e_csv_data.r = ci.smooth_vec(e_csv_data.r, 20);
-        e_csv_data.r = ci.smooth_vec(e_csv_data.r, 7);
+        e_csv_data.r = ci.vec_smooth(e_csv_data.r, 20);
+        e_csv_data.r = ci.vec_smooth(e_csv_data.r, 7);
 
         e_csv_data.peak_valley_idx_left = seed_point_wide_range(fn, e_csv_data.r, e_csv_data.peak_valley_idx, "left", 2, 30);
         e_csv_data.peak_valley_idx_right = seed_point_wide_range(fn, e_csv_data.r, e_csv_data.peak_valley_idx, "right", 2, 30);
@@ -2149,7 +2648,133 @@ int main(int argc, char** argv)
     cimg ci_2;
 
     // -------- //
+#if 0
 
+    vector<float> va = {4,5,5,8.8888}; 
+
+    auto va_s = ci.serial_p_2_str(va.data(), va.size()* sizeof(float));
+    ci.str_to_bin_file("va.bin", va_s); 
+    auto va_new_s = ci.bin_file_to_str("va.bin");
+
+    vector<float> va_copy ={}; 
+    va_copy.resize(va_new_s.size() / sizeof(float));
+
+    memcpy(va_copy.data(), va_new_s.data(), va_new_s.size());
+
+    cout_("{}\n", va_copy);
+
+
+    
+
+    struct abc {
+        int x;
+        int y;
+        int z; 
+        float f0;
+        double vd[22];
+    };
+
+
+
+
+
+    abc a1;
+    a1.f0 = 99.99f;
+    auto a1_s = ci.serial_struct_2_str(a1);
+    
+    ci.str_to_bin_file("a1.bin", a1_s);
+
+
+    auto a1_str = ci.bin_file_to_str("a1.bin");
+
+    abc a2 = ci.str_to_struct<abc>(a1_str); 
+
+    cout << a2.f0 << endl;
+
+    string s="hello, world!";
+    ci.str_to_bin_file("d:/jd/t/hello.bin", s);
+    auto s2 = ci.bin_file_to_str("d:/jd/t/hello.bin");
+    cout << s2 << endl;
+
+
+    vector<abc> vabc =
+    {
+        {1,2,3,4.4f,{0}},
+        {11,22,33,44.44f,{0}},
+        {111,222,333,444.44f,{0}}
+    
+    };
+
+    string vabc_s = ci.serial_p_2_str(vabc.data(), vabc.size() * sizeof(abc));
+
+
+    ci.str_to_bin_file("vabc.bin", vabc_s);
+
+    auto vabc_s2 = ci.bin_file_to_str("vabc.bin");
+    vector<abc> vabc2;
+    vabc2.resize(vabc_s2.size() / sizeof(abc));
+    memcpy(vabc2.data(), vabc_s2.data(), vabc_s2.size());
+
+    for(auto &eabc : vabc2)
+    {
+        cout_("{}, {}, {}, {}\n", eabc.x, eabc.y, eabc.z, eabc.f0);
+    }
+
+    cout_("{}\n", vabc2);
+
+#endif 
+#if 0
+
+    auto ans_cmd = ci.run_cmd("date /T"); 
+
+    cout<< ans_cmd["stdout"] << endl; 
+    for (auto &ep: ans_cmd)
+    {
+        cout_("{},{}\n", ep.first, ep.second);
+    }
+
+#endif 
+#if 0
+
+    ci.fs_touch("./a/b/c/d.txt"); 
+    ci.fcoutln("./a/b/c/d.txt", "hello world!", "ios::app");
+
+    cout <<  ci.fs_du("./a/b/c/d.txt") << endl; 
+
+    cout <<    ci.fs_f("./a/b/c/d.txt") << endl; 
+    cout << ci.fs_d("./a/b/c/d.txt") << endl;
+    // cout << ci.fs_stat("./a/b/c/d.txt") << endl;
+    auto ans_stat = ci.fs_stat("./a/b/c/d.txt");
+
+    for(auto & e_stat : ans_stat)
+    {
+        cout << e_stat.first << " : " << e_stat.second << endl; 
+    }
+
+    auto du_dir = ci.fs_du("./a");
+
+    ci.fs_cp("./a/b/c/d.txt", "./a/b/c/d_copy.txt");
+    ci.fs_cp("./a/b/c/d.txt", "./a/b/c/d_copy_.txt");
+    ci.fs_mv("./a/b/c/d_copy_.txt", "./a/b/c/d_moved.txt");
+
+    cout << "mv src: " <<  ci.fs_f("./a/b/c/d_copy_.txt") << endl;
+
+    cout << "mv : " <<  ci.fs_f("./a/b/c/d_moved.txt") << endl;
+
+
+    cout << ci.fs_du("./a/b/c/d_copy.txt") << endl;
+
+    ci.fs_cp("./a", "./a_copy");
+    cout << ci.fs_du("./a_copy") << endl;
+
+    cout_("ls:{}\n", ci.fs_ls("./a_copy"));
+    cout_("ls_r:{}\n", ci.fs_ls_r("./a_copy", R"(mov\w)"));
+
+
+    ci.fs_rm("./a/b/c/d.txt");
+    ci.fs_rm("./a_copy"); 
+
+#endif 
 #if 0
 
     ci.r_i("d:/jd/t/1.jpg"); 
@@ -2158,10 +2783,12 @@ int main(int argc, char** argv)
 #endif 
 #if 0
 
-	auto ts0 = ci.ts();
+	auto ts0 = ci.ts0();
 	ci.td_sleep(2.2);
 
-	auto ts1 = ci.ts(ts0);
+	auto ts1 = ci.ts1(ts0);
+
+
 
     // cout << ts1.s_d << endl; 
 
@@ -2189,7 +2816,7 @@ ci.s_i();
 
 
 #endif 
-#if 1
+#if 0
 
 
 
@@ -2442,7 +3069,7 @@ ci.s_i();
                 }
 
 
-                e_csv_data.r = ci.norm_vec_by_minmax(e_csv_data.r);
+                e_csv_data.r = ci.vec_norm_by_minmax(e_csv_data.r);
 
                 // cout << endl; 
 
@@ -2478,15 +3105,15 @@ ci.s_i();
                 e = abs(e);
             }
 
-            v_sum_r = ci.smooth_vec(v_sum_r, 20);
-            v_sum_r = ci.smooth_vec(v_sum_r, 7);
+            v_sum_r = ci.vec_smooth(v_sum_r, 20);
+            v_sum_r = ci.vec_smooth(v_sum_r, 7);
 
 
 
             // get min , max value from v_sum_r
 
             // v_sum_r = min_max_vector(v_sum_r);
-            v_sum_r = ci.norm_vec_by_minmax(v_sum_r);
+            v_sum_r = ci.vec_norm_by_minmax(v_sum_r);
 
             float v_min = *std::min_element(v_sum_r.begin(), v_sum_r.end());
             float v_max = *std::max_element(v_sum_r.begin(), v_sum_r.end());
@@ -2728,7 +3355,7 @@ Options:
 
     auto vimg_all = ci.vconcat(vimg); 
 
-    auto fullpathimg = ci.abspath("./vimg_all.jpg"); 
+    auto fullpathimg = ci.abs_path("./vimg_all.jpg"); 
 
     cv::imwrite(fullpathimg, vimg_all); 
     cout << "full img path: " << fullpathimg << endl;
@@ -6699,7 +7326,7 @@ RE_RUN:
 #if 0
 
     // jpg bytes array to mat
-    auto id_s = ci.read_bin_to_string("d:/jd/t/t0/1.jpg"); 
+    auto id_s = ci.bin_file_to_str("d:/jd/t/t0/1.jpg"); 
     vector<char> vchar = vector<char>(id_s.begin(), id_s.end()); 
     auto mat = cv::imdecode(vchar, cv::IMREAD_COLOR); 
 
@@ -6820,13 +7447,13 @@ RE_RUN:
 
 #if 0
     vector<float> vf{ 2.0f,3.0f,4.5f }; 
-    auto ev =  ci.sum_vec(vf);
+    auto ev =  ci.vec_sum(vf);
 
     cout << ev << endl;
 
-    cout << ci.mean_vec(vf) << endl; 
+    cout << ci.vec_mean(vf) << endl; 
 
-    cout_("{}\n", ci.diff_v(vf)) ;
+    cout_("{}\n", ci.vec_diff(vf)) ;
 
 #endif
 
@@ -6877,7 +7504,7 @@ RE_RUN:
             }
         }
 
-        auto vp_vn = ci.combine_vec(vp, vn);
+        auto vp_vn = ci.vec_combine(vp, vn);
 
 
         ci.create_img_rc_chn(1, vp_vn.size(), 1); 
@@ -7288,7 +7915,7 @@ RE_RUN:
 
     ci.s_i();
 
-    auto idbin = ci.read_bin_to_string(fn);
+    auto idbin = ci.bin_file_to_str(fn);
     for (auto e : idbin)
     {
         if (e == 0)
@@ -8530,7 +9157,7 @@ RE_RUN:
         ULONGLONG ParaOffset;
     };
 
-    string obj = ci.read_bin_to_string("D:/jd/t/di_4431.bin");
+    string obj = ci.bin_file_to_str("D:/jd/t/di_4431.bin");
 
 
     ObjectParaSmall* obj_ptr = (ObjectParaSmall*)obj.data();
@@ -9378,7 +10005,7 @@ RE_RUN:
     string ci_str = ci.serial_p_2_str(&ci, sz); 
     ci.str_to_bin_file("1.bin", ci_str); 
 
-    auto ci_str_ = ci.read_bin_to_string("1.bin");
+    auto ci_str_ = ci.bin_file_to_str("1.bin");
     int cnt = 0;
 
     for (auto e : ci_str_)
@@ -10134,7 +10761,7 @@ string sbuf = string(buf, buf + vif.size() * (sizeof(int) + sizeof(float) + 128)
 
 ci.str_to_bin_file("1.bin", sbuf);
 
-auto sbuf2 = ci.read_bin_to_string("1.bin");
+auto sbuf2 = ci.bin_file_to_str("1.bin");
 
 vector<tuple<int, float, string>> vif2{};
 
@@ -10171,7 +10798,7 @@ assert(t0 == t1);
 #endif
 
 #if 0
-string frombin = ci.read_bin_to_string("1.bin");
+string frombin = ci.bin_file_to_str("1.bin");
 
 vector<pair<int, int>> vi;
 vi.resize(3600);
@@ -10614,7 +11241,7 @@ int chn = 1;
 int& cols = w;
 int& rows = h;
 
-string bin_content = ci.read_bin_to_string(fn);
+string bin_content = ci.bin_file_to_str(fn);
 uchar* imgdata = (uchar*)bin_content.data();
 auto img = cv::Mat(rows, cols, CV_8UC(3));
 
@@ -10901,7 +11528,7 @@ assert(0 == 1);
 
 
 
-auto v_c = ci.read_bin_to_string("d:/jd/t/1.bin");
+auto v_c = ci.bin_file_to_str("d:/jd/t/1.bin");
 
 auto id_img = cv::Mat(rows, cols, CV_8UC(3));
 
@@ -11256,7 +11883,7 @@ int sz_img = w * h * chn;
 
 
 cout << fn << endl;
-string bin_content = ci.read_bin_to_string(fn);
+string bin_content = ci.bin_file_to_str(fn);
 
 uchar* buf_img = (uchar*)bin_content.data();
 uchar* buf_img_r0 = buf_img;
