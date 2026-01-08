@@ -2633,190 +2633,15 @@ int main(int argc, char** argv)
 {
 
     //  global var  // 
-
     com& ec = s_com;
     ec.glo_init(argc, argv);
     // ecl(string(argv[0]) + " start__");
-
     // string dirname = "D:\\jd\\t\\platform_test_data\\";
-
     // dirname = string("D:/jd/t/img_rgb_cmp/_309/sz_big/");
-    string fn_r0 = "d:/jd/t/rgb_10_12.jpg";
-    cimg ci;
-    cimg ci_0;
-    cimg ci_1;
-    cimg ci_2;
-
+    // string fn_r0 = "d:/jd/t/rgb_10_12.jpg";
+    cimg ci; cimg ci_0; cimg ci_1; cimg ci_2;
     // -------- //
-#if 0
-
-    vector<float> va = {4,5,5,8.8888}; 
-
-    auto va_s = ci.serial_p_2_str(va.data(), va.size()* sizeof(float));
-    ci.str_to_bin_file("va.bin", va_s); 
-    auto va_new_s = ci.bin_file_to_str("va.bin");
-
-    vector<float> va_copy ={}; 
-    va_copy.resize(va_new_s.size() / sizeof(float));
-
-    memcpy(va_copy.data(), va_new_s.data(), va_new_s.size());
-
-    cout_("{}\n", va_copy);
-
-
-    
-
-    struct abc {
-        int x;
-        int y;
-        int z; 
-        float f0;
-        double vd[22];
-    };
-
-
-
-
-
-    abc a1;
-    a1.f0 = 99.99f;
-    auto a1_s = ci.serial_struct_2_str(a1);
-    
-    ci.str_to_bin_file("a1.bin", a1_s);
-
-
-    auto a1_str = ci.bin_file_to_str("a1.bin");
-
-    abc a2 = ci.str_to_struct<abc>(a1_str); 
-
-    cout << a2.f0 << endl;
-
-    string s="hello, world!";
-    ci.str_to_bin_file("d:/jd/t/hello.bin", s);
-    auto s2 = ci.bin_file_to_str("d:/jd/t/hello.bin");
-    cout << s2 << endl;
-
-
-    vector<abc> vabc =
-    {
-        {1,2,3,4.4f,{0}},
-        {11,22,33,44.44f,{0}},
-        {111,222,333,444.44f,{0}}
-    
-    };
-
-    string vabc_s = ci.serial_p_2_str(vabc.data(), vabc.size() * sizeof(abc));
-
-
-    ci.str_to_bin_file("vabc.bin", vabc_s);
-
-    auto vabc_s2 = ci.bin_file_to_str("vabc.bin");
-    vector<abc> vabc2;
-    vabc2.resize(vabc_s2.size() / sizeof(abc));
-    memcpy(vabc2.data(), vabc_s2.data(), vabc_s2.size());
-
-    for(auto &eabc : vabc2)
-    {
-        cout_("{}, {}, {}, {}\n", eabc.x, eabc.y, eabc.z, eabc.f0);
-    }
-
-    cout_("{}\n", vabc2);
-
-#endif 
-#if 0
-
-    auto ans_cmd = ci.run_cmd("date /T"); 
-
-    cout<< ans_cmd["stdout"] << endl; 
-    for (auto &ep: ans_cmd)
-    {
-        cout_("{},{}\n", ep.first, ep.second);
-    }
-
-#endif 
-#if 0
-
-    ci.fs_touch("./a/b/c/d.txt"); 
-    ci.fcoutln("./a/b/c/d.txt", "hello world!", "ios::app");
-
-    cout <<  ci.fs_du("./a/b/c/d.txt") << endl; 
-
-    cout <<    ci.fs_f("./a/b/c/d.txt") << endl; 
-    cout << ci.fs_d("./a/b/c/d.txt") << endl;
-    // cout << ci.fs_stat("./a/b/c/d.txt") << endl;
-    auto ans_stat = ci.fs_stat("./a/b/c/d.txt");
-
-    for(auto & e_stat : ans_stat)
-    {
-        cout << e_stat.first << " : " << e_stat.second << endl; 
-    }
-
-    auto du_dir = ci.fs_du("./a");
-
-    ci.fs_cp("./a/b/c/d.txt", "./a/b/c/d_copy.txt");
-    ci.fs_cp("./a/b/c/d.txt", "./a/b/c/d_copy_.txt");
-    ci.fs_mv("./a/b/c/d_copy_.txt", "./a/b/c/d_moved.txt");
-
-    cout << "mv src: " <<  ci.fs_f("./a/b/c/d_copy_.txt") << endl;
-
-    cout << "mv : " <<  ci.fs_f("./a/b/c/d_moved.txt") << endl;
-
-
-    cout << ci.fs_du("./a/b/c/d_copy.txt") << endl;
-
-    ci.fs_cp("./a", "./a_copy");
-    cout << ci.fs_du("./a_copy") << endl;
-
-    cout_("ls:{}\n", ci.fs_ls("./a_copy"));
-    cout_("ls_r:{}\n", ci.fs_ls_r("./a_copy", R"(mov\w)"));
-
-
-    ci.fs_rm("./a/b/c/d.txt");
-    ci.fs_rm("./a_copy"); 
-
-#endif 
-#if 0
-
-    ci.r_i("d:/jd/t/1.jpg"); 
-    ci.s_i(); 
-
-#endif 
-#if 0
-
-	auto ts0 = ci.ts0();
-	ci.td_sleep(2.2);
-
-	auto ts1 = ci.ts1(ts0);
-
-
-
-    // cout << ts1.s_d << endl; 
-
-#endif 
-
-#if 0
-cout << ci.endwith("abc.svs", ".svs") << endl; 
-cout << ci.toupper(".abC") << endl;
-cout << ci.tolower(".abC") << endl;
-
-ci.read_img("d:/jd/t/h24193301009.jpg"); 
-auto imghist = ci.hist_img(ci.img);
-ci.img = imghist;
-ci.s_i();
-
-
-// auto orig_size = ci.img.size();
-
-// auto img = ci.pad2square(ci.img);
-
-// auto img_o = ci.reverse_pad2square(img, orig_size);
-
-// ci.img = img_o;
-// ci.s_i(); 
-
-
-#endif 
-#if 0
+#if 1
 
 
 
@@ -3312,6 +3137,175 @@ Options:
 
 
     // end TODO
+
+#endif 
+
+#if 0
+
+    vector<float> va = {4,5,5,8.8888}; 
+
+    auto va_s = ci.serial_p_2_str(va.data(), va.size()* sizeof(float));
+    ci.str_to_bin_file("va.bin", va_s); 
+    auto va_new_s = ci.bin_file_to_str("va.bin");
+
+    vector<float> va_copy ={}; 
+    va_copy.resize(va_new_s.size() / sizeof(float));
+
+    memcpy(va_copy.data(), va_new_s.data(), va_new_s.size());
+
+    cout_("{}\n", va_copy);
+
+
+    
+
+    struct abc {
+        int x;
+        int y;
+        int z; 
+        float f0;
+        double vd[22];
+    };
+
+
+
+
+
+    abc a1;
+    a1.f0 = 99.99f;
+    auto a1_s = ci.serial_struct_2_str(a1);
+    
+    ci.str_to_bin_file("a1.bin", a1_s);
+
+
+    auto a1_str = ci.bin_file_to_str("a1.bin");
+
+    abc a2 = ci.str_to_struct<abc>(a1_str); 
+
+    cout << a2.f0 << endl;
+
+    string s="hello, world!";
+    ci.str_to_bin_file("d:/jd/t/hello.bin", s);
+    auto s2 = ci.bin_file_to_str("d:/jd/t/hello.bin");
+    cout << s2 << endl;
+
+
+    vector<abc> vabc =
+    {
+        {1,2,3,4.4f,{0}},
+        {11,22,33,44.44f,{0}},
+        {111,222,333,444.44f,{0}}
+    
+    };
+
+    string vabc_s = ci.serial_p_2_str(vabc.data(), vabc.size() * sizeof(abc));
+
+
+    ci.str_to_bin_file("vabc.bin", vabc_s);
+
+    auto vabc_s2 = ci.bin_file_to_str("vabc.bin");
+    vector<abc> vabc2;
+    vabc2.resize(vabc_s2.size() / sizeof(abc));
+    memcpy(vabc2.data(), vabc_s2.data(), vabc_s2.size());
+
+    for(auto &eabc : vabc2)
+    {
+        cout_("{}, {}, {}, {}\n", eabc.x, eabc.y, eabc.z, eabc.f0);
+    }
+
+    cout_("{}\n", vabc2);
+
+#endif 
+#if 0
+
+    auto ans_cmd = ci.run_cmd("date /T"); 
+
+    cout<< ans_cmd["stdout"] << endl; 
+    for (auto &ep: ans_cmd)
+    {
+        cout_("{},{}\n", ep.first, ep.second);
+    }
+
+#endif 
+#if 0
+
+    ci.fs_touch("./a/b/c/d.txt"); 
+    ci.fcoutln("./a/b/c/d.txt", "hello world!", "ios::app");
+
+    cout <<  ci.fs_du("./a/b/c/d.txt") << endl; 
+
+    cout <<    ci.fs_f("./a/b/c/d.txt") << endl; 
+    cout << ci.fs_d("./a/b/c/d.txt") << endl;
+    // cout << ci.fs_stat("./a/b/c/d.txt") << endl;
+    auto ans_stat = ci.fs_stat("./a/b/c/d.txt");
+
+    for(auto & e_stat : ans_stat)
+    {
+        cout << e_stat.first << " : " << e_stat.second << endl; 
+    }
+
+    auto du_dir = ci.fs_du("./a");
+
+    ci.fs_cp("./a/b/c/d.txt", "./a/b/c/d_copy.txt");
+    ci.fs_cp("./a/b/c/d.txt", "./a/b/c/d_copy_.txt");
+    ci.fs_mv("./a/b/c/d_copy_.txt", "./a/b/c/d_moved.txt");
+
+    cout << "mv src: " <<  ci.fs_f("./a/b/c/d_copy_.txt") << endl;
+
+    cout << "mv : " <<  ci.fs_f("./a/b/c/d_moved.txt") << endl;
+
+
+    cout << ci.fs_du("./a/b/c/d_copy.txt") << endl;
+
+    ci.fs_cp("./a", "./a_copy");
+    cout << ci.fs_du("./a_copy") << endl;
+
+    cout_("ls:{}\n", ci.fs_ls("./a_copy"));
+    cout_("ls_r:{}\n", ci.fs_ls_r("./a_copy", R"(mov\w)"));
+
+
+    ci.fs_rm("./a/b/c/d.txt");
+    ci.fs_rm("./a_copy"); 
+
+#endif 
+#if 0
+
+    ci.r_i("d:/jd/t/1.jpg"); 
+    ci.s_i(); 
+
+#endif 
+#if 0
+
+	auto ts0 = ci.ts0();
+	ci.td_sleep(2.2);
+
+	auto ts1 = ci.ts1(ts0);
+
+
+
+    // cout << ts1.s_d << endl; 
+
+#endif 
+
+#if 0
+cout << ci.endwith("abc.svs", ".svs") << endl; 
+cout << ci.toupper(".abC") << endl;
+cout << ci.tolower(".abC") << endl;
+
+ci.read_img("d:/jd/t/h24193301009.jpg"); 
+auto imghist = ci.hist_img(ci.img);
+ci.img = imghist;
+ci.s_i();
+
+
+// auto orig_size = ci.img.size();
+
+// auto img = ci.pad2square(ci.img);
+
+// auto img_o = ci.reverse_pad2square(img, orig_size);
+
+// ci.img = img_o;
+// ci.s_i(); 
+
 
 #endif 
 

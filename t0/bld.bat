@@ -1,50 +1,61 @@
-:: verify vs env 
-@echo off 
-where cl 2>nul
-if %errorlevel% equ 1 (
-echo no VS env !!!
-goto EOF_
-)
-@echo on 
+@echo off
+:: Usage: bld2 [rel|release|debug]
 
+:: Verify VS environment
+where cl >nul 2>&1
+if %errorlevel% neq 0 (
+    call %perl_p%\env_vs.bat
+
+)
 
 @echo off
-pushd %0\..
 
-set /a "paramCount=0"
+:: Parse build configuration
+set "BUILD_CONFIG=Debug"
+set "CONFIG_NAME=debug"
 
-for %%i in (%*) do (
-    set /a "paramCount+=1"
-)
-
-
-set "msg= "
-if %paramCount%  equ 0 (
-echo must run one of following...
-echo __________________________
-echo %msg%  bld Scan.sln
-echo %msg%  bld ClassifyReport.sln
-echo %msg%  bld Analysis.sln
-echo %msg%  bld t0.sln
-echo __________________________
-
-goto EOF_
-)
-
-
-echo bld %1 start
-msbuild  /p:Configuration=Debug %1 
-::msbuild  /p:Configuration=Release %1 
-if %errorlevel% equ 0 (
-echo .
-echo %1 build ok
+if "%1"=="" (
+    set "BUILD_CONFIG=Debug"
+    set "CONFIG_NAME=debug"
+) else if /i "%1"=="rel" (
+    set "BUILD_CONFIG=Release"
+    set "CONFIG_NAME=rel"
+) else if /i "%1"=="release" (
+    set "BUILD_CONFIG=Release"
+    set "CONFIG_NAME=release"
+) else if /i "%1"=="debug" (
+    set "BUILD_CONFIG=Debug"
+    set "CONFIG_NAME=debug"
 ) else (
-echo ____________________________________
-echo ______ %1 build error ERROR ______
-echo ____________________________________
+    echo Error: Invalid argument. Use: bld [rel^|release^|debug]
+    exit /b 1
 )
-echo bld %1 end
 
-:EOF_
+:: Auto-detect .sln file with same folder name
+for %%F in (*.sln) do (
+    set "SLN_FILE=%%F"
+    goto :found_sln
+)
 
-@echo on
+echo Error: No .sln file found in current directory.
+exit /b 1
+
+:found_sln
+echo Building %SLN_FILE% [%BUILD_CONFIG%]...
+
+:: Build with minimal output
+msbuild "%SLN_FILE%" /p:Configuration=%BUILD_CONFIG% /v:minimal /nologo /clp:ErrorsOnly
+
+if %errorlevel% equ 0 (
+    echo [SUCCESS] %SLN_FILE% - %BUILD_CONFIG%
+    
+    :: Find and print exe full path
+    for /r "x64\%BUILD_CONFIG%" %%E in (*.exe) do (
+        echo EXE: %%~fE
+    )
+) else (
+    echo [FAILED] %SLN_FILE% - %BUILD_CONFIG%
+    exit /b %errorlevel%
+)
+
+exit /b 0
