@@ -5,7 +5,7 @@ a vs solution template than contain out-of-box opencv, fmt, com lib.
 vs2022 + nmake/make
 
 ## to bld
-make bld
+nmake bld
 
 ## to run 
-make run
+nmake run
